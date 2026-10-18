@@ -70,8 +70,14 @@
     }
 
     /* Urdu: Nastaliq script needs a taller line box, otherwise letters get clipped. */
-    html[lang='ur'] body {
+    html[lang='ur'] body,
+    [lang='ur'] {
         font-family: var(--font-urdu);
+    }
+
+    /* Urdu text inside English pages (e.g. the "Name (Urdu)" field) needs the taller line box too. */
+    html[lang='en'] [lang='ur'] {
+        line-height: 2;
     }
 
     /* Nastaliq reads small at the same pixel size as Latin text, so Urdu gets one step larger type. */

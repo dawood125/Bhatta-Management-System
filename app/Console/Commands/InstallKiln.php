@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Access\KilnAccess;
 use App\Support\Access\PermissionSynchronizer;
 use App\Support\Kiln\CurrentKiln;
+use App\Support\Kiln\KilnDefaults;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -27,7 +28,7 @@ use function Laravel\Prompts\text;
 #[Description('First-time setup: create the kiln and its owner account')]
 class InstallKiln extends Command
 {
-    public function handle(PermissionSynchronizer $permissions, KilnAccess $access, CurrentKiln $currentKiln): int
+    public function handle(PermissionSynchronizer $permissions, KilnAccess $access, CurrentKiln $currentKiln, KilnDefaults $defaults): int
     {
         $input = [
             'kiln' => $this->option('kiln') ?? text(__('Kiln name'), required: true),
@@ -71,6 +72,8 @@ class InstallKiln extends Command
                 return $kiln;
             });
         });
+
+        $defaults->seed($kiln);
 
         $this->components->info(__('Kiln ":kiln" is ready. The owner can now log in.', ['kiln' => $kiln->name]));
 

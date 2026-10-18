@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Access\KilnAccess;
 use App\Support\Access\PermissionSynchronizer;
 use App\Support\Kiln\CurrentKiln;
+use App\Support\Kiln\KilnDefaults;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -19,7 +20,7 @@ use RuntimeException;
  */
 class DatabaseSeeder extends Seeder
 {
-    public function run(PermissionSynchronizer $permissions, KilnAccess $access, CurrentKiln $currentKiln): void
+    public function run(PermissionSynchronizer $permissions, KilnAccess $access, CurrentKiln $currentKiln, KilnDefaults $defaults): void
     {
         if (app()->isProduction()) {
             throw new RuntimeException('The demo seeder must never run in production.');
@@ -49,5 +50,7 @@ class DatabaseSeeder extends Seeder
                 $access->grant($user, $kiln, $role);
             }
         });
+
+        $defaults->seed($kiln);
     }
 }

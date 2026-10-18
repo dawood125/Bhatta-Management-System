@@ -25,7 +25,11 @@
         aria-label="{{ __('Main navigation') }}"
     >
         <div class="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5">
-            <x-brand.logo class="size-9" />
+            @if ($kiln->logo_path)
+                <img src="{{ $kiln->logoUrl() }}" alt="" class="size-9 shrink-0 rounded-lg bg-white object-contain p-0.5">
+            @else
+                <x-brand.logo class="size-9" />
+            @endif
             <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-white">{{ config('app.name') }}</p>
                 <p class="truncate text-xs text-stone-400">{{ $kiln->displayName() }}</p>

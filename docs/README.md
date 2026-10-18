@@ -8,5 +8,7 @@
 | [04-implementation-plan.md](04-implementation-plan.md) | Modules M0–M11, Definition of Done, acceptance examples |
 | [05-open-questions.md](05-open-questions.md) | Questions still open, grouped by the module that needs them |
 | [06-decision-and-assumption-log.md](06-decision-and-assumption-log.md) | Decisions made, assumptions to confirm, environment notes |
+| [modules/M0-foundation.md](modules/M0-foundation.md) | M0 report: login, roles, kiln separation, English/Urdu, design system |
+| [modules/M1-kiln-settings.md](modules/M1-kiln-settings.md) | M1 report: kiln profile, products/grades, stages, units, areas, expense categories |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

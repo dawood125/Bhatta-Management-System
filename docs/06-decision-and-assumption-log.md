@@ -28,6 +28,7 @@
 | D-022 | 2026-10-18 | Business rules: nobody can change their own role or deactivate themselves; only an owner can create or change an owner; a kiln always keeps at least one active owner | Agent | Final |
 | D-023 | 2026-10-18 | Timezone Asia/Karachi. Urdu UI uses Inter for Latin letters and digits and Noto Nastaliq Urdu for Urdu letters (self-hosted fonts, no CDN), one step larger type and taller lines | Agent | Final |
 | D-024 | 2026-10-18 | Working product name "Bhatta Manager" (`APP_NAME` in `.env`, so it can be changed per client) | Agent | Provisional |
+| D-025 | 2026-10-18 | No automated real-browser (Chromium) test suite: it was very slow on the development PC. The Definition of Done uses feature tests (incl. Livewire) plus a manual check in the built-in browser (desktop + phone, English + Urdu) | User | Final |
 
 ## Assumptions (to be confirmed)
 

@@ -17,7 +17,7 @@ Status: **proposal, awaiting approval.** Items marked *(needs answer)* depend on
 | Languages | Laravel translation files `lang/en.json` + `lang/ur.json`; `dir="rtl"` for Urdu; Tailwind logical properties (`ms-`/`me-`/`ps-`/`pe-`); self-hosted Urdu font | English + Urdu from day 1 (D-014) |
 | Email | Laravel Mail on a **queue** (database driver), with an `email_logs` table | Retries, failure visibility, resend |
 | Backup | `spatie/laravel-backup` v10 | Scheduled backups and in-app download |
-| Tests | **Pest 5** (unit + feature) and **Pest browser tests** (Playwright), plus manual checks in the built-in browser at desktop and mobile widths | Automated proof for every calculation and screen |
+| Tests | **Pest 4** (unit + feature, including Livewire screens) plus manual checks in the built-in browser at desktop and phone widths | Automated proof for every calculation and screen action |
 | Quality | Larastan (PHPStan), Laravel Pint | Catches type bugs; keeps code style consistent |
 
 Local setup note: the PHP `zip` extension is currently disabled in Laragon's `php.ini`. It will be enabled in M0 (Composer and backups need it).

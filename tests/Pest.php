@@ -17,7 +17,7 @@ pest()->extend(TestCase::class)
     ->beforeEach(function () {
         app(PermissionSynchronizer::class)->sync();
     })
-    ->in('Feature', 'Browser');
+    ->in('Feature');
 
 pest()->extend(TestCase::class)->in('Unit');
 

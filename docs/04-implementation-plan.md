@@ -12,7 +12,7 @@ We build **one module at a time**. A module is finished only when it passes the 
    - Unit tests for every calculation, including edge cases (zero, rounding, large numbers).
    - Feature tests for every action: happy path, validation, permissions, **kiln isolation**, duplicate submission, rollback on failure.
    - Invariant tests: every journal entry balances; stock is never negative; statement totals = journal totals.
-6. **Browser tests:** Pest browser tests for the main flows, plus my own walkthrough in the built-in browser at desktop and mobile widths, with screenshots.
+6. **Browser check:** my own walkthrough in the built-in browser at desktop and phone widths, in English and Urdu (automated Chromium tests were dropped, D-025).
 7. **Quality gates:** the full test suite is green, Larastan shows no errors, and Pint is clean. I report the exact commands and their real output.
 8. **Docs updated:** decision log, assumptions, a list of changed files, and known limitations.
 9. **Your sign-off**, then on to the next module.

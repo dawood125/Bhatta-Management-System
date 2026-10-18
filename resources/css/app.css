@@ -1,0 +1,113 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/noto-nastaliq-urdu/400.css';
+@import '@fontsource/noto-nastaliq-urdu/600.css';
+@import '@fontsource/noto-nastaliq-urdu/700.css';
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../../app/**/*.php';
+
+/*
+ * Design tokens
+ * - brand: fired-clay terracotta (primary actions, active navigation)
+ * - stone: warm neutrals for text, borders and surfaces
+ * - semantic tones: success / warning / danger / info for status, always paired with an icon or text
+ */
+@theme {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    /* Inter first: Latin letters and digits render in Inter, Urdu letters fall through to Nastaliq. */
+    --font-urdu: 'Inter Variable', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+    --font-numeric: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    --color-brand-50: #fcf4f1;
+    --color-brand-100: #f9e5de;
+    --color-brand-200: #f2c8b8;
+    --color-brand-300: #e9a28a;
+    --color-brand-400: #dd7558;
+    --color-brand-500: #cf5737;
+    --color-brand-600: #b8432a;
+    --color-brand-700: #993624;
+    --color-brand-800: #7c2f22;
+    --color-brand-900: #652a20;
+    --color-brand-950: #36130e;
+
+    --color-canvas: #f6f4f1;
+    --color-surface: #ffffff;
+    --color-sidebar: #1f1a17;
+    --color-sidebar-hover: #2c2521;
+    --color-sidebar-active: #3a2f29;
+
+    --radius-control: 0.5rem;
+    --radius-card: 0.875rem;
+
+    --shadow-card: 0 1px 2px 0 rgb(31 26 23 / 0.04), 0 1px 3px 0 rgb(31 26 23 / 0.06);
+    --shadow-pop: 0 10px 30px -10px rgb(31 26 23 / 0.25), 0 4px 10px -4px rgb(31 26 23 / 0.12);
+
+    --animate-fade-in: fade-in 150ms ease-out;
+    --animate-pop-in: pop-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes pop-in {
+        from { opacity: 0; transform: translateY(6px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+}
+
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        @apply bg-canvas text-stone-800;
+    }
+
+    /* Urdu: Nastaliq script needs a taller line box, otherwise letters get clipped. */
+    html[lang='ur'] body {
+        font-family: var(--font-urdu);
+    }
+
+    /* Nastaliq reads small at the same pixel size as Latin text, so Urdu gets one step larger type. */
+    html[lang='ur'] {
+        --text-xs: 0.8125rem;
+        --text-sm: 0.9375rem;
+        --text-base: 1.0625rem;
+        --text-xs--line-height: 2.1;
+        --text-sm--line-height: 2.1;
+        --text-base--line-height: 2.1;
+        --text-lg--line-height: 2;
+        --text-xl--line-height: 1.9;
+        --text-2xl--line-height: 1.8;
+    }
+
+    /* Numbers stay in crisp Latin digits with equal widths, so columns of figures line up. */
+    .tabular,
+    input[type='number'],
+    input[inputmode='decimal'],
+    input[inputmode='numeric'] {
+        font-family: var(--font-numeric);
+        font-variant-numeric: tabular-nums;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-brand-500;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 1ms !important;
+            transition-duration: 1ms !important;
+        }
+    }
+}

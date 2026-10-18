@@ -1,0 +1,11 @@
+{{-- Brand mark: three courses of bricks in a running bond. --}}
+<svg {{ $attributes->merge(['class' => 'size-9']) }} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect width="36" height="36" rx="9" fill="#B8432A"/>
+    <rect x="7" y="9" width="10" height="5" rx="1.2" fill="#FCF4F1"/>
+    <rect x="19" y="9" width="10" height="5" rx="1.2" fill="#F2C8B8"/>
+    <rect x="7" y="15.5" width="4" height="5" rx="1.2" fill="#F2C8B8"/>
+    <rect x="13" y="15.5" width="10" height="5" rx="1.2" fill="#FCF4F1"/>
+    <rect x="25" y="15.5" width="4" height="5" rx="1.2" fill="#F2C8B8"/>
+    <rect x="7" y="22" width="10" height="5" rx="1.2" fill="#F2C8B8"/>
+    <rect x="19" y="22" width="10" height="5" rx="1.2" fill="#FCF4F1"/>
+</svg>

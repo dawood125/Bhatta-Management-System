@@ -3,10 +3,12 @@
 namespace App\Support\Kiln;
 
 use App\Accounting\ChartOfAccounts;
+use App\Enums\MaterialKind;
 use App\Enums\ProductKind;
 use App\Enums\StageKind;
 use App\Models\ExpenseCategory;
 use App\Models\Kiln;
+use App\Models\Material;
 use App\Models\Product;
 use App\Models\ProductionStage;
 use App\Models\Unit;
@@ -55,6 +57,21 @@ class KilnDefaults
         ['name' => 'Miscellaneous', 'name_ur' => 'متفرق', 'subs' => []],
     ];
 
+    /**
+     * Provisional units until the owner answers Q-10 and Q-12 (soil "per foot" is taken as cubic
+     * feet; Kassu, Tuka and waste by the trolley; Bora by the bag). All editable per kiln.
+     *
+     * @var list<array{code: string, name: string, name_ur: string, kind: MaterialKind, unit: string}>
+     */
+    public const MATERIALS = [
+        ['code' => 'soil', 'name' => 'Soil (Matti)', 'name_ur' => 'مٹی', 'kind' => MaterialKind::RawMaterial, 'unit' => 'cft'],
+        ['code' => 'kassu', 'name' => 'Kassu', 'name_ur' => 'کسو', 'kind' => MaterialKind::RawMaterial, 'unit' => 'trolley'],
+        ['code' => 'coal', 'name' => 'Coal (Kola)', 'name_ur' => 'کوئلہ', 'kind' => MaterialKind::Fuel, 'unit' => 'ton'],
+        ['code' => 'bora', 'name' => 'Bora', 'name_ur' => 'بورا', 'kind' => MaterialKind::Fuel, 'unit' => 'bag'],
+        ['code' => 'tuka', 'name' => 'Tuka', 'name_ur' => 'ٹکا', 'kind' => MaterialKind::Fuel, 'unit' => 'trolley'],
+        ['code' => 'waste', 'name' => 'Waste fuel', 'name_ur' => 'ویسٹ (فضلہ)', 'kind' => MaterialKind::Fuel, 'unit' => 'trolley'],
+    ];
+
     public function __construct(
         private readonly CurrentKiln $currentKiln,
         private readonly ChartOfAccounts $chartOfAccounts,
@@ -68,9 +85,36 @@ class KilnDefaults
                 $this->seedProducts();
                 $this->seedStages();
                 $this->seedExpenseCategories();
+                $this->seedMaterials();
                 $this->chartOfAccounts->seedSystemAccounts();
             });
         });
+    }
+
+    /** A material is skipped when the kiln already has it, or one with the same name. */
+    private function seedMaterials(): void
+    {
+        $units = Unit::query()->whereNotNull('code')->pluck('id', 'code');
+
+        foreach (self::MATERIALS as $order => $material) {
+            $exists = Material::query()
+                ->where(fn ($q) => $q->where('code', $material['code'])->orWhere('name', $material['name'])->orWhere('name_ur', $material['name_ur']))
+                ->exists();
+
+            if ($exists || ! isset($units[$material['unit']])) {
+                continue;
+            }
+
+            Material::query()->create([
+                'code' => $material['code'],
+                'name' => $material['name'],
+                'name_ur' => $material['name_ur'],
+                'kind' => $material['kind'],
+                'unit_id' => $units[$material['unit']],
+                'is_active' => true,
+                'sort_order' => ($order + 1) * 10,
+            ]);
+        }
     }
 
     private function seedUnits(): void

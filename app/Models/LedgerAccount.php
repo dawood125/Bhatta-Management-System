@@ -39,6 +39,10 @@ class LedgerAccount extends Model
 
     public const PAYABLES = 'payables';
 
+    public const MATERIAL_STOCK = 'material_stock';
+
+    public const MATERIAL_SHORTAGES = 'material_shortages';
+
     /** Accounts whose lines must name a party (customer/supplier sub-ledgers). */
     public const PARTY_ACCOUNTS = [self::RECEIVABLES, self::PAYABLES];
 

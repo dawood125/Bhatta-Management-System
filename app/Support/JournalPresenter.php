@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\JournalType;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
+use App\Models\LedgerAccount;
 
 /**
  * Readable descriptions of journal entries, built at display time so they always appear in the
@@ -19,7 +20,9 @@ class JournalPresenter
             JournalType::Transfer => 'neutral',
             JournalType::CapitalIn, JournalType::Receipt => 'success',
             JournalType::CapitalOut, JournalType::Payment => 'warning',
-            JournalType::Expense => 'brand',
+            JournalType::Expense, JournalType::MaterialUsage => 'brand',
+            JournalType::MaterialPurchase => 'info',
+            JournalType::MaterialAdjustment => 'warning',
             JournalType::Reversal => 'danger',
         };
     }
@@ -33,9 +36,18 @@ class JournalPresenter
         $debits = self::names($entry, debit: true);
         $credits = self::names($entry, debit: false);
 
-        // An expense always names its category; the typed details follow it.
-        if ($entry->type === JournalType::Expense) {
+        // An expense always names its category, and materials used name their "... used" accounts;
+        // the typed details follow.
+        if ($entry->type === JournalType::Expense || $entry->type === JournalType::MaterialUsage) {
             return filled($entry->memo) ? $debits.': '.$entry->memo : $debits;
+        }
+
+        // Opening stock is credited to "Opening balances"; a shortage is debited to "Material shortages".
+        if ($entry->type === JournalType::MaterialAdjustment) {
+            $isOpening = $entry->lines->contains(fn (JournalLine $line) => $line->credit->isPositive() && $line->account->system_key === LedgerAccount::OPENING_BALANCE_EQUITY);
+            $label = $isOpening ? __('Opening material stock') : __('Material shortage');
+
+            return filled($entry->memo) ? $label.': '.$entry->memo : $label;
         }
 
         if ($entry->type !== JournalType::Reversal && filled($entry->memo)) {
@@ -51,6 +63,7 @@ class JournalPresenter
             JournalType::OpeningBalance => __('Opening balance'),
             JournalType::Payment => __('Paid to :names', ['names' => $debits]),
             JournalType::Receipt => __('Received from :names', ['names' => $credits]),
+            JournalType::MaterialPurchase => __('Material purchase: :names', ['names' => $credits]),
         };
     }
 

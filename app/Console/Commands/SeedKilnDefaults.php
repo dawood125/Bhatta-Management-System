@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('kiln:defaults {--kiln= : Only this kiln id (default: all kilns)}')]
-#[Description('Add any missing default units, grades, stages and expense categories to kilns (never changes existing rows)')]
+#[Description('Add any missing default units, grades, stages, expense categories, materials and system accounts to kilns (never changes existing rows)')]
 class SeedKilnDefaults extends Command
 {
     public function handle(KilnDefaults $defaults): int

@@ -35,6 +35,12 @@ class Navigation
                 ],
             ],
             [
+                'label' => __('Kiln'),
+                'items' => [
+                    ['label' => __('Materials'), 'route' => 'materials.index', 'icon' => 'package', 'active' => 'materials.*', 'permissions' => [Permission::MaterialsView]],
+                ],
+            ],
+            [
                 'label' => __('Administration'),
                 'items' => [
                     ['label' => __('Kiln settings'), 'route' => 'settings.index', 'icon' => 'settings', 'active' => 'settings.*', 'permissions' => [Permission::KilnProfileManage, Permission::SettingsManage]],
@@ -76,6 +82,7 @@ class Navigation
             ['label' => __('Units'), 'route' => 'settings.units', 'icon' => 'ruler', 'permissions' => [Permission::SettingsManage]],
             ['label' => __('Areas'), 'route' => 'settings.areas', 'icon' => 'map-pin', 'permissions' => [Permission::SettingsManage]],
             ['label' => __('Expense categories'), 'route' => 'settings.expense-categories', 'icon' => 'tags', 'permissions' => [Permission::SettingsManage]],
+            ['label' => __('Materials'), 'route' => 'settings.materials', 'icon' => 'package', 'permissions' => [Permission::SettingsManage]],
         ];
 
         $visible = [];

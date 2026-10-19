@@ -3,6 +3,8 @@
 namespace App\Actions\Settings;
 
 use App\Actions\Settings\Concerns\ValidatesSettings;
+use App\Models\Material;
+use App\Models\MaterialMovement;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +33,12 @@ class SaveUnit
         // Built-in units drive calculations (e.g. bricks are always whole numbers).
         if ($unit !== null && $unit->is_system && (int) $data['decimals'] !== $unit->decimals) {
             throw ValidationException::withMessages(['decimals' => __('The decimal places of a built-in unit cannot be changed.')]);
+        }
+
+        // Fewer decimals would hide part of quantities that are already recorded.
+        if ($unit !== null && (int) $data['decimals'] < $unit->decimals
+            && MaterialMovement::query()->whereIn('material_id', Material::query()->where('unit_id', $unit->id)->select('id'))->exists()) {
+            throw ValidationException::withMessages(['decimals' => __('Materials in this unit already have stock entries, so its decimal places can only increase.')]);
         }
 
         return DB::transaction(function () use ($unit, $data): Unit {

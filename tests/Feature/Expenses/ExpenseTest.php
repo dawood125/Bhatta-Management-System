@@ -77,7 +77,8 @@ describe('recording expenses', function () {
         $repairs = ExpenseCategory::query()->where('name', 'Repairs and maintenance')->sole();
         recordExpense($this->owner, $this->cash, $repairs, '300');
 
-        $codes = LedgerAccount::query()->where('type', AccountType::Expense)->orderBy('code')->pluck('code')->all();
+        // Category accounts only (not system expense accounts such as Material shortages).
+        $codes = LedgerAccount::query()->where('type', AccountType::Expense)->whereNull('system_key')->orderBy('code')->pluck('code')->all();
 
         expect($codes)->toBe(['5001', '5002'])
             ->and(app(LedgerQueries::class)->balance(LedgerAccount::query()->findOrFail($this->fuel->fresh()->ledger_account_id))->toDecimal())->toBe('300.00');

@@ -54,6 +54,14 @@
 | D-048 | 2026-10-19 | Each expense category gets its own expense account (codes 5001–5999), created with its first expense and renamed with the category. An `expenses` row keeps the category, sub-category, account and details; the money side is its `EX-…` entry. Sub-categories are optional and must belong to the category | Agent | Final |
 | D-049 | 2026-10-19 | Vouchers and expenses are corrected only by reversal with a reason (the plan's "void"), by Owner or Manager (`transactions.reverse`). New permissions `payments.record` and `expenses.record` go to Owner, Manager and Munshi; viewing uses `accounts.view` | Agent | Final |
 | D-050 | 2026-10-19 | Vouchers may not be dated before the opening date of any account or party on them (same rule as cash/bank accounts) | Agent | Final |
+| D-051 | 2026-10-19 | Materials are kept as stock with a value: purchases debit "Material stock" (1200) at landed cost; usage moves weighted-average cost (in posting order) to the material's own "… used" expense account (5501–5899, created on first use, renamed with the material); shortages go to "Material shortages" (5900). Expense category accounts now use 5001–5499 | Agent (from plan M5) | Final |
+| D-052 | 2026-10-19 | Quantities are stored exactly as whole thousandths, shown with the unit's decimal places (0–3). A unit's decimals can only increase once materials in it have stock; a material's unit is fixed once it has stock entries | Agent | Final |
+| D-053 | 2026-10-19 | Extra charges (trolley/transport, excavator, loading, other) are part of the material's cost, spread over the purchase lines by value to the exact paisa. Each charge is paid with the goods, owed to another party (e.g. the trolley driver), or paid from an account | Agent, using the proposed default for Q-11 | Final unless Q-11 answer changes it |
+| D-054 | 2026-10-19 | Material stock can never be negative on any day: back-dated usage is refused if the stock of that day or any later day would fall below zero | Agent | Final |
+| D-055 | 2026-10-19 | Material entries (PU purchase, MU usage, SA adjustment) are reversed from the material screens, which also reverse their stock movements; refused if the stock has been used since, or if what remains would carry no sensible value. They can't be reversed from the general transactions screen | Agent | Final |
+| D-056 | 2026-10-19 | Opening stock must state its cost (credited to Opening balances); a shortage needs a reason and is valued at average cost. Both by Owner or Manager only (`materials.adjust`). No "found extra stock" entry in v1: a wrong entry is reversed and entered again | Agent | Final for v1 |
+| D-057 | 2026-10-19 | Default materials, editable per kiln: Soil (cubic feet), Kassu (trolley), Coal (ton), Bora (bag), Tuka (trolley), Waste fuel (trolley). `php artisan kiln:defaults` adds missing defaults and system accounts to existing kilns and is part of every upgrade | Agent, using proposed defaults for Q-10/Q-12 | Provisional until Q-10/Q-12 are answered |
+| D-058 | 2026-10-19 | Permissions: `materials.view` (Owner, Manager, Munshi, Viewer), `materials.record` purchases and usage (Owner, Manager, Munshi), `materials.adjust` (Owner, Manager). Materials themselves are set up under Kiln settings (`settings.manage`) | Agent | Final |
 
 ## Assumptions (to be confirmed)
 
@@ -67,6 +75,8 @@
 | A-006 | Drivers are independent tractor-trolley owners (parties), not salaried employees | Reference data (435 driver parties) + Q-04 | You |
 | A-007 | Default grades and Urdu spellings: Awal اوّل, Doom دوم, Khingar کھنگر, Tile ٹائل, Tooty ٹوٹا, Rora روڑا (sold per trolley), Kachi کچی اینٹ (not for sale) | Owner's notes + reference product list | Owner (Q-16) |
 | A-008 | Default stage names: Raw bricks (Pathai), In the kiln (Julai), Fired awaiting Nakaasi, Ready for sale | Owner's notes | Owner (Q-13) |
+| A-009 | Soil bought "per foot" means per cubic foot; Kassu, Tuka and waste are counted by the trolley | Owner's notes (Q-10) | Owner (Q-10, Q-12) |
+| A-010 | Bora is sawdust-type fuel bought by the bag; coal is bought by the ton | Common kiln practice (Q-12) | Owner (Q-12) |
 
 ## Environment notes
 

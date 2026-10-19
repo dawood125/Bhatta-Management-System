@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -25,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $created_by
  * @property-read JournalEntry $entry
  * @property-read Collection<int, MaterialMovement> $movements
+ * @property-read ProductionEntry|null $productionEntry
  * @property-read User|null $creator
  */
 class MaterialUsage extends Model
@@ -57,6 +59,16 @@ class MaterialUsage extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(MaterialMovement::class)->whereNull('reversal_of_id')->orderBy('id');
+    }
+
+    /**
+     * The firing entry this fuel was recorded with, if any.
+     *
+     * @return HasOne<ProductionEntry, $this>
+     */
+    public function productionEntry(): HasOne
+    {
+        return $this->hasOne(ProductionEntry::class);
     }
 
     /**

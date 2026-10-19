@@ -26,6 +26,9 @@ enum Permission: string
     case MaterialsView = 'materials.view';
     case MaterialsRecord = 'materials.record';
     case MaterialsAdjust = 'materials.adjust';
+    case ProductionView = 'production.view';
+    case ProductionRecord = 'production.record';
+    case ProductionAdjust = 'production.adjust';
 
     public function label(): string
     {
@@ -48,6 +51,9 @@ enum Permission: string
             self::MaterialsView => __('View material stock and purchases'),
             self::MaterialsRecord => __('Record material purchases and usage'),
             self::MaterialsAdjust => __('Enter opening stock and stock shortages'),
+            self::ProductionView => __('View production and brick stock'),
+            self::ProductionRecord => __('Record daily production'),
+            self::ProductionAdjust => __('Correct production: adjust brick stock and reverse entries'),
         };
     }
 }

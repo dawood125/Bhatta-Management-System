@@ -50,13 +50,15 @@ enum Role: string
                 Permission::TransactionsReverse, Permission::FinancialReportsView,
                 Permission::PartiesView, Permission::PartiesManage, Permission::PaymentsRecord, Permission::ExpensesRecord,
                 Permission::MaterialsView, Permission::MaterialsRecord, Permission::MaterialsAdjust,
+                Permission::ProductionView, Permission::ProductionRecord, Permission::ProductionAdjust,
             ],
             self::Munshi => [
                 Permission::AccountsView, Permission::TransactionsRecord, Permission::PartiesView, Permission::PartiesManage,
                 Permission::PaymentsRecord, Permission::ExpensesRecord, Permission::MaterialsView, Permission::MaterialsRecord,
+                Permission::ProductionView, Permission::ProductionRecord,
             ],
-            self::DataEntry => [],
-            self::Viewer => [Permission::PartiesView, Permission::MaterialsView],
+            self::DataEntry => [Permission::ProductionView, Permission::ProductionRecord],
+            self::Viewer => [Permission::PartiesView, Permission::MaterialsView, Permission::ProductionView],
         };
     }
 }

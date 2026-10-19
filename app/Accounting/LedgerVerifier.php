@@ -166,7 +166,58 @@ class LedgerVerifier
             }
         }
 
-        return [...$problems, ...$this->verifyMaterials()];
+        return [...$problems, ...$this->verifyMaterials(), ...$this->verifyProduction()];
+    }
+
+    /**
+     * Brick stock has no money side, but the same discipline: never negative, graded where it
+     * must be, and reversals complete.
+     *
+     * @return list<string>
+     */
+    private function verifyProduction(): array
+    {
+        $problems = [];
+
+        // 13. Saleable movements name their grade.
+        $ungraded = DB::table('brick_movements')
+            ->where(fn ($q) => $q->where('stage_to', 'saleable')->orWhere('stage_from', 'saleable'))
+            ->whereNull('product_id')
+            ->pluck('id');
+        foreach ($ungraded as $id) {
+            $problems[] = "Brick movement #{$id}: saleable bricks must name their grade.";
+        }
+
+        // 14. No stage (or grade) holds fewer than zero bricks.
+        $in = DB::table('brick_movements')->whereNotNull('stage_to')
+            ->groupBy('kiln_id', 'stage_to', DB::raw("CASE WHEN stage_to = 'saleable' THEN product_id END"))
+            ->selectRaw("kiln_id, stage_to AS stage, CASE WHEN stage_to = 'saleable' THEN product_id END AS product, SUM(quantity) AS quantity");
+        $out = DB::table('brick_movements')->whereNotNull('stage_from')
+            ->groupBy('kiln_id', 'stage_from', DB::raw("CASE WHEN stage_from = 'saleable' THEN product_id END"))
+            ->selectRaw("kiln_id, stage_from AS stage, CASE WHEN stage_from = 'saleable' THEN product_id END AS product, -SUM(quantity) AS quantity");
+        $levels = DB::query()->fromSub($in->unionAll($out), 's')
+            ->groupBy('kiln_id', 'stage', 'product')
+            ->selectRaw('kiln_id, stage, product, SUM(quantity) AS quantity')
+            ->havingRaw('SUM(quantity) < 0')
+            ->get();
+        foreach ($levels as $level) {
+            $problems[] = "Kiln #{$level->kiln_id}: stage {$level->stage}".($level->product !== null ? " (product #{$level->product})" : '')." holds {$level->quantity}.";
+        }
+
+        // 15. A reversed entry has a mirror for every movement; an entry that counts has none.
+        $entries = DB::table('production_entries as p')
+            ->select('p.number', 'p.reversed_at')
+            ->selectRaw('(SELECT COUNT(*) FROM brick_movements m WHERE m.production_entry_id = p.id AND m.reversal_of_id IS NULL) AS own')
+            ->selectRaw('(SELECT COUNT(*) FROM brick_movements m WHERE m.production_entry_id = p.id AND m.reversal_of_id IS NOT NULL) AS mirrors')
+            ->get();
+        foreach ($entries as $e) {
+            $expected = $e->reversed_at !== null ? (int) $e->own : 0;
+            if ((int) $e->mirrors !== $expected) {
+                $problems[] = "Production entry {$e->number}: its reversal movements are incomplete.";
+            }
+        }
+
+        return $problems;
     }
 
     /**

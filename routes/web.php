@@ -18,6 +18,9 @@ use App\Livewire\Materials\StockIndex;
 use App\Livewire\Materials\UsageIndex;
 use App\Livewire\Parties\PartyIndex;
 use App\Livewire\Parties\PartyStatement;
+use App\Livewire\Production\DayView;
+use App\Livewire\Production\EntryIndex;
+use App\Livewire\Production\StockOverview;
 use App\Livewire\Profile\ProfileEdit;
 use App\Livewire\Reports\TrialBalance;
 use App\Livewire\Settings\AreaIndex;
@@ -49,6 +52,12 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
     Route::livewire('/vouchers/new/{kind}', VoucherForm::class)->whereIn('kind', ['payment', 'receipt'])->name('vouchers.create');
     Route::livewire('/vouchers/{entry}', VoucherShow::class)->whereNumber('entry')->name('vouchers.show');
     Route::livewire('/expenses', ExpenseIndex::class)->name('expenses.index');
+
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::livewire('/', StockOverview::class)->name('index');
+        Route::livewire('/day', DayView::class)->name('day');
+        Route::livewire('/entries', EntryIndex::class)->name('entries');
+    });
 
     Route::prefix('materials')->name('materials.')->group(function () {
         Route::livewire('/', StockIndex::class)->name('index');

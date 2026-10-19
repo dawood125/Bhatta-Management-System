@@ -11,6 +11,8 @@ use App\Enums\Permission;
 use App\Materials\MaterialStock;
 use App\Models\JournalEntry;
 use App\Models\MaterialMovement;
+use App\Models\MaterialUsage;
+use App\Models\ProductionEntry;
 use App\Models\TreasuryAccount;
 use App\Models\User;
 use App\Support\Money;
@@ -41,6 +43,26 @@ class ReverseMaterialEntry
     public function handle(User $actor, JournalEntry $entry, array $input, string $idempotencyKey): JournalEntry
     {
         $this->authorizeSettings($actor, Permission::TransactionsReverse);
+
+        // Fuel recorded with a firing entry is reversed together with that entry.
+        $firing = ProductionEntry::query()
+            ->whereIn('material_usage_id', MaterialUsage::query()->where('journal_entry_id', $entry->id)->select('id'))
+            ->first();
+        if ($firing !== null) {
+            throw ValidationException::withMessages(['reason' => __('This fuel was recorded with firing entry :number. Reverse that entry instead.', ['number' => $firing->number])]);
+        }
+
+        return $this->reverse($actor, $entry, $input, $idempotencyKey);
+    }
+
+    /**
+     * Reverse for a caller that has already checked the actor's permission, e.g. the fuel of a
+     * firing entry being reversed by someone allowed to correct production.
+     *
+     * @param  array<string, mixed>  $input  reason
+     */
+    public function reverse(User $actor, JournalEntry $entry, array $input, string $idempotencyKey): JournalEntry
+    {
         $input = $this->clean($input, []);
 
         $data = Validator::make($input, [

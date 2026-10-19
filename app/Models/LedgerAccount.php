@@ -35,6 +35,18 @@ class LedgerAccount extends Model
 
     public const OPENING_BALANCE_EQUITY = 'opening_balance_equity';
 
+    public const RECEIVABLES = 'receivables';
+
+    public const PAYABLES = 'payables';
+
+    /** Accounts whose lines must name a party (customer/supplier sub-ledgers). */
+    public const PARTY_ACCOUNTS = [self::RECEIVABLES, self::PAYABLES];
+
+    public function requiresParty(): bool
+    {
+        return in_array($this->system_key, self::PARTY_ACCOUNTS, true);
+    }
+
     protected function casts(): array
     {
         return [

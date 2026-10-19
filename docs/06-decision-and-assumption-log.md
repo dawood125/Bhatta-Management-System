@@ -41,6 +41,14 @@
 | D-036 | 2026-10-19 | System-generated descriptions are not stored; they are built at display time in the viewer's language. Only typed notes are stored | Agent | Final |
 | D-037 | 2026-10-19 | Amounts accept both "150,000" and lakh-style "1,50,000" (commas ignored); more than 2 decimals is refused | Agent | Final |
 | D-025 | 2026-10-18 | No automated real-browser (Chromium) test suite: it was very slow on the development PC. The Definition of Done uses feature tests (incl. Livewire) plus a manual check in the built-in browser (desktop + phone, English + Urdu) | User | Final |
+| D-038 | 2026-10-19 | One party record can have several roles: customer, supplier, driver, sales agent (`party_roles` table). No Marka role in v1 (no trading, D-011); labour contractors are decided in M7 | Agent | Final for v1 |
+| D-039 | 2026-10-19 | Party money lives in two control accounts, 1100 Accounts receivable and 2100 Accounts payable. Every line on them names a party; lines on any other account never do. The posting engine refuses violations and `ledger:verify` re-checks them | Agent | Final |
+| D-040 | 2026-10-19 | A party's balance is debits minus credits over both control accounts: positive = receivable (they owe us, لینا), negative = payable (we owe them, دینا). Totals net each party first, then add up receivables and payables separately | Agent | Final |
+| D-041 | 2026-10-19 | Statement columns are labelled Debit (banam) / Credit (jama), as in local hand ledgers, and every running balance carries a Receivable / Payable / Settled badge | Agent | Final |
+| D-042 | 2026-10-19 | "Add party" carries a one-time key (`creation_key`, unique per kiln): submitting the same form twice returns the first party. Two different people may still share a name; the form warns about similar names | Agent | Final |
+| D-043 | 2026-10-19 | Only customers have a sales agent (D-012), and it must be an active party with the sales-agent role. An agent can't lose that role while customers still point to them. Parties are archived only at a zero balance, never deleted | Agent | Final |
+| D-044 | 2026-10-19 | M3 statements print from the browser with a print layout (no sidebar, kiln name and period on top). The server-side, Urdu-capable PDF is built with invoice PDFs in M8 and then added to statements | Agent | Final |
+| D-045 | 2026-10-19 | Permissions: `parties.view` for Owner, Manager, Munshi and Viewer; `parties.manage` (add, edit, opening balances, archive) for Owner, Manager and Munshi. Data entry has no access. Every change is in the activity log, and a changed opening balance keeps both the old entry and its reversal | Agent | Provisional: owner may restrict opening-balance changes to Owner/Manager |
 
 ## Assumptions (to be confirmed)
 

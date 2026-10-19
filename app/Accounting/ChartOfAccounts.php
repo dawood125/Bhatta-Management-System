@@ -10,12 +10,15 @@ use App\Models\LedgerAccount;
  * Creates the ledger accounts the system needs. Each module adds its own system accounts when
  * it is built (receivables, payables, sales, ...), so nothing unused is created early.
  *
- * Code ranges: 1xxx assets (1001+ cash/bank), 2xxx liabilities (2001+ credit cards), 3xxx equity.
+ * Code ranges: 1xxx assets (1001-1099 cash/bank, 1100 receivables), 2xxx liabilities
+ * (2001-2099 credit cards, 2100 payables), 3xxx equity.
  */
 class ChartOfAccounts
 {
     /** @var list<array{key: string, code: string, name: string, name_ur: string, type: AccountType}> */
     public const SYSTEM_ACCOUNTS = [
+        ['key' => LedgerAccount::RECEIVABLES, 'code' => '1100', 'name' => 'Accounts receivable', 'name_ur' => 'وصولی کے کھاتے (لینا)', 'type' => AccountType::Asset],
+        ['key' => LedgerAccount::PAYABLES, 'code' => '2100', 'name' => 'Accounts payable', 'name_ur' => 'ادائیگی کے کھاتے (دینا)', 'type' => AccountType::Liability],
         ['key' => LedgerAccount::OWNER_CAPITAL, 'code' => '3000', 'name' => 'Owner capital', 'name_ur' => 'مالک کا سرمایہ', 'type' => AccountType::Equity],
         ['key' => LedgerAccount::OWNER_DRAWINGS, 'code' => '3100', 'name' => 'Owner withdrawals', 'name_ur' => 'مالک کی نکاسی', 'type' => AccountType::Equity],
         ['key' => LedgerAccount::OPENING_BALANCE_EQUITY, 'code' => '3900', 'name' => 'Opening balances', 'name_ur' => 'ابتدائی بیلنس', 'type' => AccountType::Equity],

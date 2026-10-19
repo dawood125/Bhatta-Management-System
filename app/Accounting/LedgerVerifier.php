@@ -90,6 +90,38 @@ class LedgerVerifier
             }
         }
 
+        // 6. Receivable/payable lines always name a party; other lines never do; parties stay in their kiln.
+        $partyRule = DB::table('journal_lines as l')
+            ->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')
+            ->leftJoin('parties as p', 'p.id', '=', 'l.party_id')
+            ->where(function ($q) {
+                $q->where(fn ($q) => $q->whereIn('a.system_key', ['receivables', 'payables'])->whereNull('l.party_id'))
+                    ->orWhere(fn ($q) => $q->where(fn ($q) => $q->whereNull('a.system_key')->orWhereNotIn('a.system_key', ['receivables', 'payables']))->whereNotNull('l.party_id'))
+                    ->orWhere(fn ($q) => $q->whereNotNull('l.party_id')->whereColumn('p.kiln_id', '!=', 'l.kiln_id'));
+            })
+            ->pluck('l.id');
+        foreach ($partyRule as $id) {
+            $problems[] = "Line #{$id}: party missing on a receivable/payable line, present on another account, or from another kiln.";
+        }
+
+        // 7. Party opening balances match their opening entries.
+        $parties = DB::table('parties as p')
+            ->leftJoin('journal_lines as l', function ($join) {
+                $join->on('l.journal_entry_id', '=', 'p.opening_entry_id')->on('l.party_id', '=', 'p.id');
+            })
+            ->groupBy('p.id', 'p.name', 'p.opening_balance', 'p.opening_entry_id')
+            ->select('p.id', 'p.name', 'p.opening_balance', 'p.opening_entry_id')
+            ->selectRaw('COALESCE(SUM(l.debit), 0) - COALESCE(SUM(l.credit), 0) AS posted')
+            ->get();
+
+        foreach ($parties as $p) {
+            $posted = $p->opening_entry_id === null ? 0 : (int) $p->posted;
+
+            if ((int) $p->opening_balance !== $posted) {
+                $problems[] = "Party \"{$p->name}\": opening balance {$p->opening_balance} does not match its opening entry ({$posted}).";
+            }
+        }
+
         return $problems;
     }
 }

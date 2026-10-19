@@ -3,7 +3,7 @@
     x-data="toastCenter()"
     x-on:toast.window="add($event.detail)"
     @if (session('toast')) x-init="add(@js(session('toast')))" @endif
-    class="pointer-events-none fixed inset-x-0 top-16 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end"
+    class="pointer-events-none fixed inset-x-0 top-16 z-[60] print:hidden flex flex-col items-center gap-2 p-4 sm:items-end"
     aria-live="polite"
 >
     <template x-for="item in items" :key="item.id">

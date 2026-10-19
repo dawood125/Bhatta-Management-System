@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToKiln;
 use App\Models\Concerns\HasLocalizedName;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -14,6 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 /**
  * @property int $id
  * @property int $kiln_id
+ * @property int|null $ledger_account_id
  * @property string $name
  * @property string|null $name_ur
  * @property bool $is_active
@@ -38,6 +40,14 @@ class ExpenseCategory extends Model implements Archivable
     public function subCategories(): HasMany
     {
         return $this->hasMany(ExpenseSubCategory::class);
+    }
+
+    /**
+     * @return BelongsTo<LedgerAccount, $this>
+     */
+    public function ledgerAccount(): BelongsTo
+    {
+        return $this->belongsTo(LedgerAccount::class);
     }
 
     public function archiveBlocker(): ?string

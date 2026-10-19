@@ -8,6 +8,7 @@ use App\Livewire\Accounts\TransactionIndex;
 use App\Livewire\Activity\ActivityIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\Dev\ComponentGallery;
+use App\Livewire\Expenses\ExpenseIndex;
 use App\Livewire\Parties\PartyIndex;
 use App\Livewire\Parties\PartyStatement;
 use App\Livewire\Profile\ProfileEdit;
@@ -19,6 +20,9 @@ use App\Livewire\Settings\ProductIndex;
 use App\Livewire\Settings\StageIndex;
 use App\Livewire\Settings\UnitIndex;
 use App\Livewire\Users\UserIndex;
+use App\Livewire\Vouchers\VoucherForm;
+use App\Livewire\Vouchers\VoucherIndex;
+use App\Livewire\Vouchers\VoucherShow;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/locale', LocaleController::class)->name('locale.update');
@@ -32,6 +36,11 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
 
     Route::livewire('/parties', PartyIndex::class)->name('parties.index');
     Route::livewire('/parties/{party}', PartyStatement::class)->name('parties.show');
+
+    Route::livewire('/vouchers', VoucherIndex::class)->name('vouchers.index');
+    Route::livewire('/vouchers/new/{kind}', VoucherForm::class)->whereIn('kind', ['payment', 'receipt'])->name('vouchers.create');
+    Route::livewire('/vouchers/{entry}', VoucherShow::class)->whereNumber('entry')->name('vouchers.show');
+    Route::livewire('/expenses', ExpenseIndex::class)->name('expenses.index');
 
     Route::livewire('/accounts', AccountIndex::class)->name('accounts.index');
     Route::livewire('/accounts/{account}/book', CashBook::class)->name('accounts.book');

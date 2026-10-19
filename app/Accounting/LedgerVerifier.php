@@ -122,6 +122,50 @@ class LedgerVerifier
             }
         }
 
+        // 8. Each expense matches its entry: same kiln and date, the amount debited to the category's
+        //    expense account and credited to the cash/bank account. Every expense entry has an expense.
+        $expenses = DB::table('expenses as x')
+            ->join('journal_entries as e', 'e.id', '=', 'x.journal_entry_id')
+            ->join('expense_categories as c', 'c.id', '=', 'x.expense_category_id')
+            ->join('treasury_accounts as t', 't.id', '=', 'x.treasury_account_id')
+            ->select('x.id', 'e.number', 'e.type', 'e.total', 'x.amount')
+            ->selectRaw('(e.entry_date = x.expense_date AND e.kiln_id = x.kiln_id AND c.kiln_id = x.kiln_id AND t.kiln_id = x.kiln_id) AS same_place')
+            ->selectRaw('(SELECT COALESCE(SUM(l.debit), 0) FROM journal_lines l WHERE l.journal_entry_id = x.journal_entry_id AND l.ledger_account_id = c.ledger_account_id) AS expense_debit')
+            ->selectRaw('(SELECT COALESCE(SUM(l.credit), 0) FROM journal_lines l WHERE l.journal_entry_id = x.journal_entry_id AND l.ledger_account_id = t.ledger_account_id) AS cash_credit')
+            ->get();
+
+        foreach ($expenses as $x) {
+            $amount = (int) $x->amount;
+            if ($x->type !== 'expense' || ! (bool) $x->same_place || (int) $x->total !== $amount
+                || (int) $x->expense_debit !== $amount || (int) $x->cash_credit !== $amount) {
+                $problems[] = "Expense #{$x->id} ({$x->number}): does not match its journal entry.";
+            }
+        }
+
+        $expenseEntriesWithoutExpense = DB::table('journal_entries as e')
+            ->where('e.type', 'expense')
+            ->whereNotExists(fn ($q) => $q->from('expenses as x')->whereColumn('x.journal_entry_id', 'e.id'))
+            ->pluck('e.number');
+        foreach ($expenseEntriesWithoutExpense as $number) {
+            $problems[] = "Entry {$number}: an expense entry without its expense record.";
+        }
+
+        // 9. Vouchers: line 1 is the voucher's cash/bank account, credited by a payment and debited
+        //    by a receipt, with the full voucher total.
+        $vouchers = DB::table('journal_entries as e')
+            ->join('journal_lines as l', fn ($join) => $join->on('l.journal_entry_id', '=', 'e.id')->where('l.line_no', 1))
+            ->leftJoin('treasury_accounts as t', 't.ledger_account_id', '=', 'l.ledger_account_id')
+            ->whereIn('e.type', ['payment', 'receipt'])
+            ->select('e.number', 'e.type', 'e.total', 'l.debit', 'l.credit', 't.id as treasury_id')
+            ->get();
+
+        foreach ($vouchers as $v) {
+            $side = $v->type === 'payment' ? (int) $v->credit : (int) $v->debit;
+            if ($v->treasury_id === null || $side !== (int) $v->total) {
+                $problems[] = "Voucher {$v->number}: line 1 must move the full total through a cash/bank account.";
+            }
+        }
+
         return $problems;
     }
 }

@@ -92,8 +92,25 @@ describe('opening balances', function () {
         expect($party->balance()->toDecimal())->toBe('-1200.00')
             ->and($oldEntry->fresh()->isReversed())->toBeTrue()
             ->and($reversal->entry_date->format('Y-m-d'))->toBe($oldEntry->entry_date->format('Y-m-d'))
-            ->and(arBalance())->toBe('0.00')
-            ->and(apBalance())->toBe('1200.00');
+            // A customer stays in receivables: an advance from a customer is a credit balance there.
+            ->and(arBalance())->toBe('-1200.00')
+            ->and(apBalance())->toBe('0.00');
+    });
+
+    it('keeps each party in one control account: customers in receivables, others in payables', function () {
+        $customerAdvance = makeParty($this->owner, 'Customer who paid in advance', [PartyRole::Customer], '800', SaveParty::WE_OWE_THEM);
+        $supplierAdvance = makeParty($this->owner, 'Supplier we paid in advance', [PartyRole::Supplier], '600');
+        $both = makeParty($this->owner, 'Customer and supplier', [PartyRole::Supplier, PartyRole::Customer], '100', SaveParty::WE_OWE_THEM);
+
+        $accountOf = fn ($party) => JournalEntry::query()->findOrFail($party->opening_entry_id)->lines()->whereNotNull('party_id')->sole()->ledger_account_id;
+        $ar = LedgerAccount::bySystemKey(LedgerAccount::RECEIVABLES)->id;
+        $ap = LedgerAccount::bySystemKey(LedgerAccount::PAYABLES)->id;
+
+        expect($accountOf($customerAdvance))->toBe($ar)
+            ->and($accountOf($supplierAdvance))->toBe($ap)
+            ->and($accountOf($both))->toBe($ar)
+            ->and($customerAdvance->balance()->toDecimal())->toBe('-800.00')
+            ->and($supplierAdvance->balance()->toDecimal())->toBe('600.00');
     });
 
     it('does not move the opening date after existing transactions', function () {

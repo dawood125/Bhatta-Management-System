@@ -11,6 +11,9 @@ enum JournalType: string
     case Transfer = 'transfer';
     case CapitalIn = 'capital_in';
     case CapitalOut = 'capital_out';
+    case Payment = 'payment';
+    case Receipt = 'receipt';
+    case Expense = 'expense';
     case Reversal = 'reversal';
 
     public function label(): string
@@ -20,6 +23,9 @@ enum JournalType: string
             self::Transfer => __('Transfer'),
             self::CapitalIn => __('Owner capital in'),
             self::CapitalOut => __('Owner withdrawal'),
+            self::Payment => __('Payment'),
+            self::Receipt => __('Receipt'),
+            self::Expense => __('Expense'),
             self::Reversal => __('Reversal'),
         };
     }
@@ -31,6 +37,9 @@ enum JournalType: string
             self::OpeningBalance => 'OB',
             self::Transfer => 'TR',
             self::CapitalIn, self::CapitalOut => 'CP',
+            self::Payment => 'PV',
+            self::Receipt => 'RCV',
+            self::Expense => 'EX',
             self::Reversal => 'RV',
         };
     }
@@ -39,9 +48,15 @@ enum JournalType: string
     public function isUserReversible(): bool
     {
         return match ($this) {
-            self::Transfer, self::CapitalIn, self::CapitalOut => true,
+            self::Transfer, self::CapitalIn, self::CapitalOut, self::Payment, self::Receipt, self::Expense => true,
             // Opening balances change by editing the account; reversals are re-posted, not reversed.
             self::OpeningBalance, self::Reversal => false,
         };
+    }
+
+    /** Payment and receipt vouchers: one cash/bank account (line 1) and one line per party or account. */
+    public function isVoucher(): bool
+    {
+        return $this === self::Payment || $this === self::Receipt;
     }
 }

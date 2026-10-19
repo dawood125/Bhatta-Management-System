@@ -48,9 +48,12 @@ enum Role: string
                 Permission::UsersView, Permission::UsersManage, Permission::ActivityView, Permission::SettingsManage,
                 Permission::AccountsView, Permission::AccountsManage, Permission::TransactionsRecord,
                 Permission::TransactionsReverse, Permission::FinancialReportsView,
-                Permission::PartiesView, Permission::PartiesManage,
+                Permission::PartiesView, Permission::PartiesManage, Permission::PaymentsRecord, Permission::ExpensesRecord,
             ],
-            self::Munshi => [Permission::AccountsView, Permission::TransactionsRecord, Permission::PartiesView, Permission::PartiesManage],
+            self::Munshi => [
+                Permission::AccountsView, Permission::TransactionsRecord, Permission::PartiesView, Permission::PartiesManage,
+                Permission::PaymentsRecord, Permission::ExpensesRecord,
+            ],
             self::DataEntry => [],
             self::Viewer => [Permission::PartiesView],
         };

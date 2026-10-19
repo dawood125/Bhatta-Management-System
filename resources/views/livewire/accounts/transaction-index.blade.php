@@ -51,7 +51,15 @@
                             <tbody class="divide-y divide-stone-100">
                                 @foreach ($entry->lines as $line)
                                     <tr>
-                                        <td class="py-1 text-stone-700"><span class="tabular text-stone-400" dir="ltr">{{ $line->account->code }}</span> {{ $line->account->displayName() }}</td>
+                                        <td class="py-1 text-stone-700">
+                                            <span class="tabular text-stone-400" dir="ltr">{{ $line->account->code }}</span> {{ $line->account->displayName() }}
+                                            @if ($line->party)
+                                                <span class="text-stone-500">· <bdi>{{ $line->party->displayName() }}</bdi></span>
+                                            @endif
+                                            @if (filled($line->memo))
+                                                <span class="block text-stone-400"><bdi>{{ $line->memo }}</bdi></span>
+                                            @endif
+                                        </td>
                                         <td class="py-1 text-end">@if ($line->debit->isPositive())<x-ui.money :amount="$line->debit" :currency="false" />@endif</td>
                                         <td class="py-1 text-end">@if ($line->credit->isPositive())<x-ui.money :amount="$line->credit" :currency="false" />@endif</td>
                                     </tr>
@@ -73,7 +81,7 @@
                 </x-ui.td>
             </tr>
         @empty
-            <tr><td colspan="5"><x-ui.empty-state icon="receipt" :title="__('No transactions found')" :description="__('Transfers, owner capital and opening balances will appear here.')" /></td></tr>
+            <tr><td colspan="5"><x-ui.empty-state icon="receipt" :title="__('No transactions found')" :description="__('Payments, receipts, expenses, transfers and opening balances will appear here.')" /></td></tr>
         @endforelse
 
         @if ($this->entries->hasPages())

@@ -4,6 +4,7 @@ namespace App\Actions\Settings;
 
 use App\Actions\Settings\Concerns\ValidatesSettings;
 use App\Models\ExpenseCategory;
+use App\Models\LedgerAccount;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -29,6 +30,13 @@ class SaveExpenseCategory
         return DB::transaction(function () use ($category, $data): ExpenseCategory {
             $category ??= new ExpenseCategory(['is_active' => true]);
             $category->fill($data)->save();
+
+            // The category's expense account (once it has one) carries the same name in reports.
+            if ($category->ledger_account_id !== null) {
+                LedgerAccount::query()->whereKey($category->ledger_account_id)->firstOrFail()
+                    ->fill(['name' => $category->name, 'name_ur' => $category->name_ur])
+                    ->save();
+            }
 
             return $category;
         });

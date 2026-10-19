@@ -4,6 +4,7 @@ namespace App\Accounting;
 
 use App\Enums\AccountType;
 use App\Enums\TreasuryKind;
+use App\Models\ExpenseCategory;
 use App\Models\LedgerAccount;
 
 /**
@@ -11,7 +12,7 @@ use App\Models\LedgerAccount;
  * it is built (receivables, payables, sales, ...), so nothing unused is created early.
  *
  * Code ranges: 1xxx assets (1001-1099 cash/bank, 1100 receivables), 2xxx liabilities
- * (2001-2099 credit cards, 2100 payables), 3xxx equity.
+ * (2001-2099 credit cards, 2100 payables), 3xxx equity, 5001-5999 expense categories.
  */
 class ChartOfAccounts
 {
@@ -42,8 +43,38 @@ class ChartOfAccounts
     public function createTreasuryLedgerAccount(TreasuryKind $kind, string $name, ?string $nameUr): LedgerAccount
     {
         $type = $kind->ledgerType();
-        $range = $type === AccountType::Liability ? [2001, 2099] : [1001, 1099];
 
+        return $this->createAccount($type === AccountType::Liability ? [2001, 2099] : [1001, 1099], $type, $name, $nameUr);
+    }
+
+    /**
+     * The expense account of a category, created the first time the category is used. Must run
+     * inside a transaction: the category row is locked so two first expenses can't both create one.
+     */
+    public function expenseAccountFor(ExpenseCategory $category): LedgerAccount
+    {
+        /** @var ExpenseCategory $locked */
+        $locked = ExpenseCategory::query()->whereKey($category->id)->lockForUpdate()->firstOrFail();
+
+        if ($locked->ledger_account_id !== null) {
+            return LedgerAccount::query()->findOrFail($locked->ledger_account_id);
+        }
+
+        $account = $this->createAccount([5001, 5999], AccountType::Expense, $locked->name, $locked->name_ur);
+        $locked->ledger_account_id = $account->id;
+        $locked->save();
+        $category->ledger_account_id = $account->id;
+
+        return $account;
+    }
+
+    /**
+     * Next free code in the range, taken under a lock.
+     *
+     * @param  array{int, int}  $range
+     */
+    private function createAccount(array $range, AccountType $type, string $name, ?string $nameUr): LedgerAccount
+    {
         $codes = LedgerAccount::query()
             ->whereBetween('code', [(string) $range[0], (string) $range[1]])
             ->lockForUpdate()

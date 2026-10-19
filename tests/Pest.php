@@ -24,6 +24,7 @@ pest()->extend(TestCase::class)->in('Unit');
 
 require_once __DIR__.'/Support/accounting.php';
 require_once __DIR__.'/Support/parties.php';
+require_once __DIR__.'/Support/vouchers.php';
 
 /** Create an active kiln. */
 function makeKiln(array $attributes = []): Kiln

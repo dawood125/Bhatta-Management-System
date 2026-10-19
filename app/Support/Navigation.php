@@ -27,6 +27,8 @@ class Navigation
                 'label' => __('Money'),
                 'items' => [
                     ['label' => __('Parties'), 'route' => 'parties.index', 'icon' => 'contact', 'active' => 'parties.*', 'permissions' => [Permission::PartiesView]],
+                    ['label' => __('Payments and receipts'), 'route' => 'vouchers.index', 'icon' => 'arrow-left-right', 'active' => 'vouchers.*', 'permissions' => [Permission::AccountsView]],
+                    ['label' => __('Expenses'), 'route' => 'expenses.index', 'icon' => 'receipt-text', 'active' => 'expenses.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Cash and bank'), 'route' => 'accounts.index', 'icon' => 'wallet', 'active' => 'accounts.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Transactions'), 'route' => 'transactions.index', 'icon' => 'receipt', 'active' => 'transactions.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Trial balance'), 'route' => 'reports.trial-balance', 'icon' => 'scale', 'active' => 'reports.trial-balance', 'permissions' => [Permission::FinancialReportsView]],

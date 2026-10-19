@@ -24,6 +24,14 @@ class Navigation
                 ],
             ],
             [
+                'label' => __('Money'),
+                'items' => [
+                    ['label' => __('Cash and bank'), 'route' => 'accounts.index', 'icon' => 'wallet', 'active' => 'accounts.*', 'permissions' => [Permission::AccountsView]],
+                    ['label' => __('Transactions'), 'route' => 'transactions.index', 'icon' => 'receipt', 'active' => 'transactions.*', 'permissions' => [Permission::AccountsView]],
+                    ['label' => __('Trial balance'), 'route' => 'reports.trial-balance', 'icon' => 'scale', 'active' => 'reports.trial-balance', 'permissions' => [Permission::FinancialReportsView]],
+                ],
+            ],
+            [
                 'label' => __('Administration'),
                 'items' => [
                     ['label' => __('Kiln settings'), 'route' => 'settings.index', 'icon' => 'settings', 'active' => 'settings.*', 'permissions' => [Permission::KilnProfileManage, Permission::SettingsManage]],

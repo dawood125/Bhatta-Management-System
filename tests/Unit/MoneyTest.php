@@ -14,6 +14,7 @@ describe('parsing rupee input', function () {
         ['-300.75', -30075],
         [' 12 ', 1200],
         ['13,800.00', 1380000],
+        'lakh grouping, as written in Pakistan' => ['1,50,000', 15000000],
         [5, 500],
     ]);
 

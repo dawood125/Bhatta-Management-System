@@ -33,6 +33,13 @@
 | D-028 | 2026-10-18 | Master data (products, units, areas, expense categories) is archived, never deleted; names are unique per kiln in English and Urdu | Agent | Final |
 | D-029 | 2026-10-18 | Currency fixed to PKR and date display DD-MM-YYYY for v1 (no per-kiln setting) | Agent | Final for v1 |
 | D-030 | 2026-10-18 | Kiln logo: PNG/JPG/WebP up to 1 MB on the public disk; SVG refused (can carry scripts); edited by the owner only | Agent | Final |
+| D-031 | 2026-10-19 | Journal: one entry per transaction, debits = credits, lines one-sided and positive (also a DB CHECK); entries and lines are immutable; corrections are reversal entries with a reason | Agent (from D-007) | Final |
+| D-032 | 2026-10-19 | Document numbers are gap-free per kiln, prefix and year (OB, TR, CP, RV …), taken inside the posting transaction under a row lock | Agent (from D-019) | Final |
+| D-033 | 2026-10-19 | Every money form carries a one-time idempotency key; reusing it returns the first entry instead of posting again | Agent (from D-019) | Final |
+| D-034 | 2026-10-19 | Cash/bank/wallet/person accounts can't go negative unless "allow negative" (overdraft) is on; credit cards are liabilities whose balance is the amount owed | Agent | Final |
+| D-035 | 2026-10-19 | Opening balances post against an "Opening balances" equity account; changing one reverses the old entry on its own date and posts the new one | Agent | Final |
+| D-036 | 2026-10-19 | System-generated descriptions are not stored; they are built at display time in the viewer's language. Only typed notes are stored | Agent | Final |
+| D-037 | 2026-10-19 | Amounts accept both "150,000" and lakh-style "1,50,000" (commas ignored); more than 2 decimals is refused | Agent | Final |
 | D-025 | 2026-10-18 | No automated real-browser (Chromium) test suite: it was very slow on the development PC. The Definition of Done uses feature tests (incl. Livewire) plus a manual check in the built-in browser (desktop + phone, English + Urdu) | User | Final |
 
 ## Assumptions (to be confirmed)

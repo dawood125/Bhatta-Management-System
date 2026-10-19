@@ -13,6 +13,12 @@ enum Permission: string
     case ActivityView = 'activity.view';
     case SettingsManage = 'settings.manage';
     case KilnProfileManage = 'kiln.profile';
+    case AccountsView = 'accounts.view';
+    case AccountsManage = 'accounts.manage';
+    case TransactionsRecord = 'transactions.record';
+    case TransactionsReverse = 'transactions.reverse';
+    case CapitalRecord = 'capital.record';
+    case FinancialReportsView = 'reports.financial';
 
     public function label(): string
     {
@@ -22,6 +28,12 @@ enum Permission: string
             self::ActivityView => __('View activity log'),
             self::SettingsManage => __('Manage kiln settings'),
             self::KilnProfileManage => __('Edit kiln profile'),
+            self::AccountsView => __('View cash and bank accounts'),
+            self::AccountsManage => __('Manage cash and bank accounts'),
+            self::TransactionsRecord => __('Record transfers'),
+            self::TransactionsReverse => __('Reverse transactions'),
+            self::CapitalRecord => __('Record owner capital and withdrawals'),
+            self::FinancialReportsView => __('View financial reports'),
         };
     }
 }

@@ -53,6 +53,7 @@ enum Role: string
                 Permission::ProductionView, Permission::ProductionRecord, Permission::ProductionAdjust,
                 Permission::LabourView, Permission::LabourRecord, Permission::LabourPay, Permission::LabourWorkers, Permission::LabourRates,
                 Permission::SalesView, Permission::SalesRecord, Permission::SalesAdjust,
+                Permission::DaysClose,
             ],
             self::Munshi => [
                 Permission::AccountsView, Permission::TransactionsRecord, Permission::PartiesView, Permission::PartiesManage,
@@ -60,6 +61,7 @@ enum Role: string
                 Permission::ProductionView, Permission::ProductionRecord,
                 Permission::LabourView, Permission::LabourRecord, Permission::LabourPay, Permission::LabourWorkers,
                 Permission::SalesView, Permission::SalesRecord,
+                Permission::DaysClose,
             ],
             self::DataEntry => [Permission::ProductionView, Permission::ProductionRecord],
             self::Viewer => [Permission::PartiesView, Permission::MaterialsView, Permission::ProductionView, Permission::LabourView, Permission::SalesView],

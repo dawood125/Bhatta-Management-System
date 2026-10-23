@@ -77,6 +77,8 @@ M8 was built on the proposed defaults below (decisions D-078 to D-087). An answe
 
 ## F. Finance and reports (before M9)
 
+M9 was built on the proposed defaults below (decisions D-089 to D-091). An answer can still change them.
+
 | ID | Question | Proposed default |
 |---|---|---|
 | Q-40 [ACC] | What are **"sack ledger"** and **"coil cost"**? (Sack may be **Bora**, and coil may be **Kola/coal**. To be confirmed.) | Treated as Bora and Kola cost reports until confirmed |

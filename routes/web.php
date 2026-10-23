@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PartyStatementPdfController;
+use App\Http\Controllers\ReportPdfController;
 use App\Http\Controllers\SaleInvoiceController;
 use App\Http\Controllers\SettingsHomeController;
 use App\Livewire\Accounts\AccountIndex;
@@ -32,6 +33,14 @@ use App\Livewire\Production\DayView;
 use App\Livewire\Production\EntryIndex;
 use App\Livewire\Production\StockOverview;
 use App\Livewire\Profile\ProfileEdit;
+use App\Livewire\Reports\BalanceSheet;
+use App\Livewire\Reports\CostPerThousandReport;
+use App\Livewire\Reports\DayCloseIndex;
+use App\Livewire\Reports\ProductionReport;
+use App\Livewire\Reports\ProfitAndLoss;
+use App\Livewire\Reports\ReceivablesReport;
+use App\Livewire\Reports\ReportIndex;
+use App\Livewire\Reports\SalesReport;
 use App\Livewire\Reports\TrialBalance;
 use App\Livewire\Sales\DispatchIndex;
 use App\Livewire\Sales\DriversDue;
@@ -110,7 +119,19 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
     Route::livewire('/accounts', AccountIndex::class)->name('accounts.index');
     Route::livewire('/accounts/{account}/book', CashBook::class)->name('accounts.book');
     Route::livewire('/transactions', TransactionIndex::class)->name('transactions.index');
-    Route::livewire('/reports/trial-balance', TrialBalance::class)->name('reports.trial-balance');
+
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::livewire('/', ReportIndex::class)->name('index');
+        Route::livewire('/profit-and-loss', ProfitAndLoss::class)->name('profit-and-loss');
+        Route::livewire('/balance-sheet', BalanceSheet::class)->name('balance-sheet');
+        Route::livewire('/trial-balance', TrialBalance::class)->name('trial-balance');
+        Route::livewire('/day-close', DayCloseIndex::class)->name('day-close');
+        Route::livewire('/sales', SalesReport::class)->name('sales');
+        Route::livewire('/production', ProductionReport::class)->name('production');
+        Route::livewire('/costs', CostPerThousandReport::class)->name('costs');
+        Route::livewire('/receivables', ReceivablesReport::class)->name('receivables');
+        Route::get('/{report}.pdf', ReportPdfController::class)->whereIn('report', ['profit-and-loss', 'balance-sheet'])->name('pdf');
+    });
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', SettingsHomeController::class)->name('index');

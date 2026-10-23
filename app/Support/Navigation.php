@@ -21,6 +21,10 @@ class Navigation
                 'label' => __('Overview'),
                 'items' => [
                     ['label' => __('Dashboard'), 'route' => 'dashboard', 'icon' => 'layout-dashboard', 'active' => 'dashboard', 'permissions' => []],
+                    ['label' => __('Reports'), 'route' => 'reports.index', 'icon' => 'chart-column', 'active' => 'reports.*', 'permissions' => [
+                        Permission::FinancialReportsView, Permission::DaysClose, Permission::AccountsView, Permission::PartiesView,
+                        Permission::SalesView, Permission::ProductionView, Permission::MaterialsView, Permission::LabourView,
+                    ]],
                 ],
             ],
             [
@@ -31,7 +35,7 @@ class Navigation
                     ['label' => __('Expenses'), 'route' => 'expenses.index', 'icon' => 'receipt-text', 'active' => 'expenses.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Cash and bank'), 'route' => 'accounts.index', 'icon' => 'wallet', 'active' => 'accounts.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Transactions'), 'route' => 'transactions.index', 'icon' => 'receipt', 'active' => 'transactions.*', 'permissions' => [Permission::AccountsView]],
-                    ['label' => __('Trial balance'), 'route' => 'reports.trial-balance', 'icon' => 'scale', 'active' => 'reports.trial-balance', 'permissions' => [Permission::FinancialReportsView]],
+                    ['label' => __('Day close'), 'route' => 'reports.day-close', 'icon' => 'lock', 'active' => 'reports.day-close', 'permissions' => [Permission::DaysClose]],
                 ],
             ],
             [

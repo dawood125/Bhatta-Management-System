@@ -2,6 +2,7 @@
 
 namespace App\Actions\Sales;
 
+use App\Accounting\BooksLock;
 use App\Accounting\DocumentNumbers;
 use App\Accounting\JournalPoster;
 use App\Accounting\LedgerIntegrityException;
@@ -132,6 +133,8 @@ class RecordDispatch
         if (DB::transactionLevel() === 0) {
             throw new LedgerIntegrityException('Deliveries must be written inside a database transaction.');
         }
+
+        app(BooksLock::class)->assertOpen($date, $actor);
 
         $delivered = $this->saleStock->delivered(array_map(fn (array $item) => $item['line']->id, array_values($items)));
 

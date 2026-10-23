@@ -2,6 +2,7 @@
 
 namespace App\Actions\Sales;
 
+use App\Accounting\BooksLock;
 use App\Accounting\JournalPoster;
 use App\Actions\Sales\Concerns\ChecksSales;
 use App\Actions\Settings\Concerns\ValidatesSettings;
@@ -54,6 +55,7 @@ class ReverseDispatch
             }
 
             $today = now()->startOfDay();
+            app(BooksLock::class)->assertOpen($today, $actor);
             foreach ($fresh->movements()->get() as $movement) {
                 BrickMovement::query()->create([
                     'sale_dispatch_id' => $fresh->id,

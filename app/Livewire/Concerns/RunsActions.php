@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Accounting\BooksLock;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -23,6 +24,10 @@ trait RunsActions
         try {
             return $action();
         } catch (ValidationException $e) {
+            if (isset($e->errors()[BooksLock::ERROR_KEY])) {
+                $this->toast($e->errors()[BooksLock::ERROR_KEY][0], 'error');
+            }
+
             $messages = [];
             foreach ($e->errors() as $key => $errors) {
                 $messages[$errorPrefix === '' ? $key : "{$errorPrefix}.{$key}"] = $errors;

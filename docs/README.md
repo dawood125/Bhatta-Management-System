@@ -17,5 +17,6 @@
 | [modules/M6-production.md](modules/M6-production.md) | M6 report: Pathai, loading, firing with fuel, Nakaasi by grade, brick stock by stage and grade, daily production view |
 | [modules/M7-labour.md](modules/M7-labour.md) | M7 report: workers and categories, rate cards with dates, wages from production, attendance and salaries, advances and deductions, settlements with payslips, labour cost |
 | [modules/M8-sales.md](modules/M8-sales.md) | M8 report: sales with stock reservation, deliveries with carriage, payments per sale, credit notes and write-offs, invoice PDF in English and Urdu, invoice emails with retries, drivers due, statement PDF |
+| [modules/M9-reports.md](modules/M9-reports.md) | M9 report: dashboard, reports page, profit and loss, balance sheet, day close with lock, sales and production summaries, cost per 1,000 bricks, who owes us |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

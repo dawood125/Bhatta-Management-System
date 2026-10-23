@@ -5,6 +5,7 @@ namespace App\Accounting;
 use App\Models\JournalLine;
 use App\Models\LedgerAccount;
 use App\Models\Party;
+use App\Support\JournalPresenter;
 use App\Support\Kiln\CurrentKiln;
 use App\Support\Money;
 use Carbon\CarbonInterface;
@@ -112,7 +113,7 @@ class LedgerQueries
             ->orderBy('journal_entries.entry_date')
             ->orderBy('journal_entries.id')
             ->orderBy('journal_lines.line_no')
-            ->with(['entry.lines.account', 'entry.creator'])
+            ->with(['entry.lines.account', 'entry.lines.party', 'entry.creator'])
             ->get();
 
         $running = $opening;
@@ -129,7 +130,7 @@ class LedgerQueries
 
             $counterparts = $line->entry->lines
                 ->where('ledger_account_id', '!=', $account->id)
-                ->map(fn (JournalLine $other) => $other->account->displayName())
+                ->map(fn (JournalLine $other) => JournalPresenter::lineName($other))
                 ->unique()
                 ->implode(', ');
 

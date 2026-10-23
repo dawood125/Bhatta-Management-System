@@ -21,6 +21,11 @@ enum Permission: string
     case FinancialReportsView = 'reports.financial';
     case PartiesView = 'parties.view';
     case PartiesManage = 'parties.manage';
+    case PaymentsRecord = 'payments.record';
+    case ExpensesRecord = 'expenses.record';
+    case MaterialsView = 'materials.view';
+    case MaterialsRecord = 'materials.record';
+    case MaterialsAdjust = 'materials.adjust';
 
     public function label(): string
     {
@@ -38,6 +43,11 @@ enum Permission: string
             self::FinancialReportsView => __('View financial reports'),
             self::PartiesView => __('View parties and statements'),
             self::PartiesManage => __('Manage parties'),
+            self::PaymentsRecord => __('Record payments and receipts'),
+            self::ExpensesRecord => __('Record expenses'),
+            self::MaterialsView => __('View material stock and purchases'),
+            self::MaterialsRecord => __('Record material purchases and usage'),
+            self::MaterialsAdjust => __('Enter opening stock and stock shortages'),
         };
     }
 }

@@ -93,6 +93,9 @@
                         @if ($description !== $entry->type->label())
                             <p class="mt-1 text-stone-700"><bdi>{{ $description }}</bdi></p>
                         @endif
+                        @if (filled($row['line']->memo) && $row['line']->memo !== $description)
+                            <p class="mt-0.5 text-xs text-stone-500"><bdi>{{ $row['line']->memo }}</bdi></p>
+                        @endif
                     </x-ui.td>
                     <x-ui.td align="end">@if ($row['debit']->isPositive())<x-ui.money :amount="$row['debit']" :currency="false" />@endif</x-ui.td>
                     <x-ui.td align="end">@if ($row['credit']->isPositive())<x-ui.money :amount="$row['credit']" :currency="false" />@endif</x-ui.td>

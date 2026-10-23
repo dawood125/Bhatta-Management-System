@@ -115,6 +115,16 @@ class Party extends Model
             ->where('party_roles.role', $role->value));
     }
 
+    /**
+     * The control account that carries this party's new transactions: receivables for customers,
+     * payables for everyone else. Using one account per party keeps, for example, a refund to a
+     * customer in the same account as the customer's sales.
+     */
+    public function controlAccount(): LedgerAccount
+    {
+        return LedgerAccount::bySystemKey($this->hasRole(PartyRole::Customer) ? LedgerAccount::RECEIVABLES : LedgerAccount::PAYABLES);
+    }
+
     /** Net balance: positive = they owe us, negative = we owe them. */
     public function balance(?Carbon $asOf = null): Money
     {

@@ -25,8 +25,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Create or edit a customer / supplier / driver / sales agent.
  *
- * The opening balance ("they owe us" or "we owe them") is posted to receivables or payables
- * against "Opening balances". Changing it later reverses the old opening entry on its own date
+ * The opening balance ("they owe us" or "we owe them") is posted to the party's control account
+ * (receivables for customers, payables for others) against "Opening balances". Changing it later reverses the old opening entry on its own date
  * and posts a new one, exactly like cash/bank accounts.
  */
 class SaveParty
@@ -183,13 +183,14 @@ class SaveParty
     private function postOpening(User $actor, Party $party, Money $opening, Carbon $date, string $key): JournalEntry
     {
         $equity = LedgerAccount::bySystemKey(LedgerAccount::OPENING_BALANCE_EQUITY);
+        $control = $party->controlAccount();
         $amount = $opening->abs();
 
         $lines = $opening->isPositive()
-            // They owe us: receivable up.
-            ? [PendingLine::debit(LedgerAccount::bySystemKey(LedgerAccount::RECEIVABLES), $amount)->forParty($party), PendingLine::credit($equity, $amount)]
-            // We owe them: payable up.
-            : [PendingLine::debit($equity, $amount), PendingLine::credit(LedgerAccount::bySystemKey(LedgerAccount::PAYABLES), $amount)->forParty($party)];
+            // They owe us: debit the party.
+            ? [PendingLine::debit($control, $amount)->forParty($party), PendingLine::credit($equity, $amount)]
+            // We owe them: credit the party.
+            : [PendingLine::debit($equity, $amount), PendingLine::credit($control, $amount)->forParty($party)];
 
         return $this->poster->post(JournalType::OpeningBalance, $date, $lines, $key, $actor);
     }

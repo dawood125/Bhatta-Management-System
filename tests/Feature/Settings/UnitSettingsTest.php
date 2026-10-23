@@ -3,6 +3,7 @@
 use App\Enums\ProductKind;
 use App\Enums\Role;
 use App\Livewire\Settings\UnitIndex;
+use App\Models\Material;
 use App\Models\Product;
 use App\Models\Unit;
 use Livewire\Livewire;
@@ -81,6 +82,10 @@ it('does not archive a unit that active products use', function () {
     expect($trolley->fresh()->is_active)->toBeTrue();
 
     Product::query()->where('code', 'rora')->update(['is_active' => false]);
+
+    // Kassu, Tuka and waste fuel are counted by the trolley too.
+    Livewire::test(UnitIndex::class)->call('archive', $trolley->id)->assertDispatched('toast', type: 'error');
+    Material::query()->where('unit_id', $trolley->id)->update(['is_active' => false]);
 
     Livewire::test(UnitIndex::class)->call('archive', $trolley->id)->assertDispatched('toast', type: 'success');
     expect($trolley->fresh()->is_active)->toBeFalse();

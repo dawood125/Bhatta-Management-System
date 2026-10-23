@@ -23,6 +23,75 @@
         };
     };
 
+    // Searchable select (x-ui.combobox). The options come from a JSON script on the page:
+    // [{value, label, hint, search}], where "search" is the lower-case text to match.
+    window.combobox = function (source) {
+        const LIMIT = 50;
+
+        return {
+            value: '',
+            open: false,
+            query: '',
+            active: 0,
+            options: [],
+            init() {
+                try {
+                    this.options = JSON.parse(document.getElementById(source)?.textContent || '[]');
+                } catch (e) {
+                    this.options = [];
+                }
+                this.$watch('open', (open) => {
+                    if (! open) return;
+                    this.active = this.query === '' ? Math.max(0, this.matches.findIndex((o) => String(o.value) === String(this.value))) : 0;
+                    this.$nextTick(() => { this.$refs.search.focus(); this.scrollToActive(); });
+                });
+            },
+            get selected() {
+                return this.options.find((o) => String(o.value) === String(this.value)) || null;
+            },
+            get matches() {
+                const words = this.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                return words.length === 0 ? this.options : this.options.filter((o) => words.every((w) => o.search.includes(w)));
+            },
+            get filtered() {
+                return this.matches.slice(0, LIMIT);
+            },
+            get more() {
+                return this.matches.length > LIMIT;
+            },
+            toggle() {
+                this.open ? this.close() : (this.open = true);
+            },
+            close() {
+                this.open = false;
+                this.query = '';
+            },
+            // Letters typed on the closed picker (or before the search box has focus) start the search.
+            typeAhead(event) {
+                if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+                if (event.key === ' ' && this.query === '') return; // Space opens the list as a normal button press.
+                event.preventDefault();
+                this.query += event.key;
+                this.open = true;
+            },
+            move(step) {
+                const count = this.filtered.length;
+                if (count === 0) return;
+                this.active = (this.active + step + count) % count;
+                this.scrollToActive();
+            },
+            scrollToActive() {
+                this.$refs.list?.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' });
+            },
+            choose(option) {
+                if (! option) return;
+                this.value = String(option.value);
+                this.close();
+                this.$nextTick(() => this.$refs.button.focus());
+            },
+        };
+    };
+
     // Livewire request failures:
     // - 401: account deactivated or kiln access removed while the page was open -> go to the login page.
     // - 419: session expired -> reload (which leads to the login page) instead of an English-only confirm box.

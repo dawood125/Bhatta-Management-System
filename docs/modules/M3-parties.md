@@ -18,7 +18,7 @@
 One person can hold several roles: someone who sells you coal and also buys bricks is one party with one balance.
 
 ## How the balances are kept correct
-- **Two control accounts.** Everything parties owe sits in *Accounts receivable* (1100); everything the kiln owes sits in *Accounts payable* (2100). Every line on these accounts names its party, and lines on other accounts never do. The posting engine refuses anything else, and `php artisan ledger:verify` checks it again.
+- **Two control accounts.** Everything parties owe sits in *Accounts receivable* (1100); everything the kiln owes sits in *Accounts payable* (2100). *(Changed in M4, D-046: customers always post to receivables and everyone else to payables, whichever way the balance runs.)* Every line on these accounts names its party, and lines on other accounts never do. The posting engine refuses anything else, and `php artisan ledger:verify` checks it again.
 - **One balance per party:** debits minus credits. Positive means **Receivable** (they owe us, لینا); negative means **Payable** (we owe them, دینا); zero shows **Settled**. Nothing is stored that could drift: lists, totals and statements all read the journal.
 - **Opening balances** post against *Opening balances* equity, exactly like cash and bank accounts. Changing one later reverses the old entry on its own date and posts the new one, so both stay in the history. The opening date can't be moved after the party's existing transactions.
 - **No duplicates from a double click.** The "Add party" form carries a one-time key: sending it twice returns the first party and posts the opening balance once. Two different people with the same name are still allowed, and the form warns when similar names already exist.

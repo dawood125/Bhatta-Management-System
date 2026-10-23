@@ -60,6 +60,10 @@ class Unit extends Model implements Archivable
             return __('Active products use this unit. Change or archive those products first.');
         }
 
+        if (Material::query()->where('unit_id', $this->id)->where('is_active', true)->exists()) {
+            return __('Active materials use this unit. Archive those materials first.');
+        }
+
         return null;
     }
 

@@ -12,5 +12,7 @@
 | [modules/M1-kiln-settings.md](modules/M1-kiln-settings.md) | M1 report: kiln profile, products/grades, stages, units, areas, expense categories |
 | [modules/M2-accounting-core.md](modules/M2-accounting-core.md) | M2 report: double-entry journal, cash/bank accounts, transfers, owner capital, cash book, trial balance |
 | [modules/M3-parties.md](modules/M3-parties.md) | M3 report: customers, suppliers, drivers, sales agents, opening balances, party statements |
+| [modules/M4-payments-and-expenses.md](modules/M4-payments-and-expenses.md) | M4 report: payment and receipt vouchers, expenses by category, reversals, payments/receipts and expense reports |
+| [modules/M5-materials.md](modules/M5-materials.md) | M5 report: materials, purchases with extra charges, usage, stock at average cost, stock card, material cost report |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

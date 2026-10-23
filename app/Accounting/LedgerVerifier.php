@@ -122,6 +122,149 @@ class LedgerVerifier
             }
         }
 
+        // 8. Each expense matches its entry: same kiln and date, the amount debited to the category's
+        //    expense account and credited to the cash/bank account. Every expense entry has an expense.
+        $expenses = DB::table('expenses as x')
+            ->join('journal_entries as e', 'e.id', '=', 'x.journal_entry_id')
+            ->join('expense_categories as c', 'c.id', '=', 'x.expense_category_id')
+            ->join('treasury_accounts as t', 't.id', '=', 'x.treasury_account_id')
+            ->select('x.id', 'e.number', 'e.type', 'e.total', 'x.amount')
+            ->selectRaw('(e.entry_date = x.expense_date AND e.kiln_id = x.kiln_id AND c.kiln_id = x.kiln_id AND t.kiln_id = x.kiln_id) AS same_place')
+            ->selectRaw('(SELECT COALESCE(SUM(l.debit), 0) FROM journal_lines l WHERE l.journal_entry_id = x.journal_entry_id AND l.ledger_account_id = c.ledger_account_id) AS expense_debit')
+            ->selectRaw('(SELECT COALESCE(SUM(l.credit), 0) FROM journal_lines l WHERE l.journal_entry_id = x.journal_entry_id AND l.ledger_account_id = t.ledger_account_id) AS cash_credit')
+            ->get();
+
+        foreach ($expenses as $x) {
+            $amount = (int) $x->amount;
+            if ($x->type !== 'expense' || ! (bool) $x->same_place || (int) $x->total !== $amount
+                || (int) $x->expense_debit !== $amount || (int) $x->cash_credit !== $amount) {
+                $problems[] = "Expense #{$x->id} ({$x->number}): does not match its journal entry.";
+            }
+        }
+
+        $expenseEntriesWithoutExpense = DB::table('journal_entries as e')
+            ->where('e.type', 'expense')
+            ->whereNotExists(fn ($q) => $q->from('expenses as x')->whereColumn('x.journal_entry_id', 'e.id'))
+            ->pluck('e.number');
+        foreach ($expenseEntriesWithoutExpense as $number) {
+            $problems[] = "Entry {$number}: an expense entry without its expense record.";
+        }
+
+        // 9. Vouchers: line 1 is the voucher's cash/bank account, credited by a payment and debited
+        //    by a receipt, with the full voucher total.
+        $vouchers = DB::table('journal_entries as e')
+            ->join('journal_lines as l', fn ($join) => $join->on('l.journal_entry_id', '=', 'e.id')->where('l.line_no', 1))
+            ->leftJoin('treasury_accounts as t', 't.ledger_account_id', '=', 'l.ledger_account_id')
+            ->whereIn('e.type', ['payment', 'receipt'])
+            ->select('e.number', 'e.type', 'e.total', 'l.debit', 'l.credit', 't.id as treasury_id')
+            ->get();
+
+        foreach ($vouchers as $v) {
+            $side = $v->type === 'payment' ? (int) $v->credit : (int) $v->debit;
+            if ($v->treasury_id === null || $side !== (int) $v->total) {
+                $problems[] = "Voucher {$v->number}: line 1 must move the full total through a cash/bank account.";
+            }
+        }
+
+        return [...$problems, ...$this->verifyMaterials()];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function verifyMaterials(): array
+    {
+        $problems = [];
+
+        // 10. In every entry, the value of the stock movements equals what the entry moves through
+        //     "Material stock" (so the account always equals the value of the stock).
+        $movementNets = DB::table('material_movements')
+            ->groupBy('journal_entry_id')
+            ->selectRaw('journal_entry_id, SUM(value_in) - SUM(value_out) AS net, kiln_id')
+            ->groupBy('kiln_id')
+            ->get()
+            ->keyBy('journal_entry_id');
+
+        $ledgerNets = DB::table('journal_lines as l')
+            ->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')
+            ->where('a.system_key', 'material_stock')
+            ->groupBy('l.journal_entry_id', 'l.kiln_id')
+            ->selectRaw('l.journal_entry_id, SUM(l.debit) - SUM(l.credit) AS net, l.kiln_id')
+            ->get()
+            ->keyBy('journal_entry_id');
+
+        foreach ($movementNets->keys()->merge($ledgerNets->keys())->unique() as $entryId) {
+            $stock = (int) ($movementNets[$entryId]->net ?? 0);
+            $ledger = (int) ($ledgerNets[$entryId]->net ?? 0);
+            $sameKiln = ! isset($movementNets[$entryId], $ledgerNets[$entryId]) || (int) $movementNets[$entryId]->kiln_id === (int) $ledgerNets[$entryId]->kiln_id;
+
+            if ($stock !== $ledger || ! $sameKiln) {
+                $number = DB::table('journal_entries')->where('id', $entryId)->value('number');
+                $problems[] = "Entry {$number}: stock movements ({$stock}) do not match the Material stock account ({$ledger}).";
+            }
+        }
+
+        // 11. No material is below zero, and an empty material carries no value.
+        $levels = DB::table('material_movements as m')
+            ->join('materials as x', 'x.id', '=', 'm.material_id')
+            ->groupBy('m.material_id', 'x.name')
+            ->select('x.name')
+            ->selectRaw('SUM(m.quantity_in) - SUM(m.quantity_out) AS quantity, SUM(m.value_in) - SUM(m.value_out) AS value')
+            ->get();
+
+        foreach ($levels as $level) {
+            if ((int) $level->quantity < 0 || (int) $level->value < 0 || ((int) $level->quantity === 0 && (int) $level->value !== 0)) {
+                $problems[] = "Material \"{$level->name}\": stock {$level->quantity} with value {$level->value} is not possible.";
+            }
+        }
+
+        // 12. Document totals add up and match their entries.
+        $purchases = DB::table('material_purchases as p')
+            ->join('journal_entries as e', 'e.id', '=', 'p.journal_entry_id')
+            ->select('p.id', 'e.number', 'e.total as entry_total', 'p.goods_total', 'p.charges_total', 'p.total')
+            ->selectRaw('(SELECT COALESCE(SUM(amount), 0) FROM material_purchase_lines WHERE material_purchase_id = p.id) AS line_amounts')
+            ->selectRaw('(SELECT COALESCE(SUM(cost), 0) FROM material_purchase_lines WHERE material_purchase_id = p.id) AS line_costs')
+            ->selectRaw('(SELECT COALESCE(SUM(amount + charges - cost), 0) FROM material_purchase_lines WHERE material_purchase_id = p.id) AS line_gaps')
+            ->selectRaw('(SELECT COALESCE(SUM(amount), 0) FROM material_purchase_charges WHERE material_purchase_id = p.id) AS charge_amounts')
+            ->get();
+
+        foreach ($purchases as $p) {
+            $ok = (int) $p->line_amounts === (int) $p->goods_total
+                && (int) $p->charge_amounts === (int) $p->charges_total
+                && (int) $p->line_gaps === 0
+                && (int) $p->line_costs === (int) $p->total
+                && (int) $p->goods_total + (int) $p->charges_total === (int) $p->total
+                && (int) $p->entry_total === (int) $p->total;
+
+            if (! $ok) {
+                $problems[] = "Purchase {$p->number}: its lines, charges and entry do not add up.";
+            }
+        }
+
+        $usages = DB::table('material_usages as u')
+            ->join('journal_entries as e', 'e.id', '=', 'u.journal_entry_id')
+            ->select('e.number', 'e.total as entry_total', 'u.total_cost')
+            ->selectRaw('(SELECT COALESCE(SUM(value_out), 0) FROM material_movements WHERE material_usage_id = u.id AND reversal_of_id IS NULL) AS moved')
+            ->get();
+
+        foreach ($usages as $u) {
+            if ((int) $u->moved !== (int) $u->total_cost || (int) $u->entry_total !== (int) $u->total_cost) {
+                $problems[] = "Material usage {$u->number}: its stock movements and entry do not add up.";
+            }
+        }
+
+        $adjustments = DB::table('material_adjustments as a')
+            ->join('journal_entries as e', 'e.id', '=', 'a.journal_entry_id')
+            ->select('e.number', 'e.total as entry_total', 'a.value')
+            ->selectRaw('(SELECT COALESCE(SUM(value_in + value_out), 0) FROM material_movements WHERE material_adjustment_id = a.id AND reversal_of_id IS NULL) AS moved')
+            ->get();
+
+        foreach ($adjustments as $a) {
+            if ((int) $a->moved !== (int) $a->value || (int) $a->entry_total !== (int) $a->value) {
+                $problems[] = "Stock adjustment {$a->number}: its stock movement and entry do not add up.";
+            }
+        }
+
         return $problems;
     }
 }

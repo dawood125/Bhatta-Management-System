@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'kiln' => EnsureKilnContext::class,
         ]);
+
+        // The kiln must be known before route models are loaded ({account} etc.), so that
+        // records of another kiln resolve to 404 through the kiln scope.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureKilnContext::class);
 
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));

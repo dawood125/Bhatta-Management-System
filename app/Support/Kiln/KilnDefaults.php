@@ -2,6 +2,7 @@
 
 namespace App\Support\Kiln;
 
+use App\Accounting\ChartOfAccounts;
 use App\Enums\ProductKind;
 use App\Enums\StageKind;
 use App\Models\ExpenseCategory;
@@ -54,7 +55,10 @@ class KilnDefaults
         ['name' => 'Miscellaneous', 'name_ur' => 'متفرق', 'subs' => []],
     ];
 
-    public function __construct(private readonly CurrentKiln $currentKiln) {}
+    public function __construct(
+        private readonly CurrentKiln $currentKiln,
+        private readonly ChartOfAccounts $chartOfAccounts,
+    ) {}
 
     public function seed(Kiln $kiln): void
     {
@@ -64,6 +68,7 @@ class KilnDefaults
                 $this->seedProducts();
                 $this->seedStages();
                 $this->seedExpenseCategories();
+                $this->chartOfAccounts->seedSystemAccounts();
             });
         });
     }

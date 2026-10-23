@@ -10,5 +10,6 @@
 | [06-decision-and-assumption-log.md](06-decision-and-assumption-log.md) | Decisions made, assumptions to confirm, environment notes |
 | [modules/M0-foundation.md](modules/M0-foundation.md) | M0 report: login, roles, kiln separation, English/Urdu, design system |
 | [modules/M1-kiln-settings.md](modules/M1-kiln-settings.md) | M1 report: kiln profile, products/grades, stages, units, areas, expense categories |
+| [modules/M2-accounting-core.md](modules/M2-accounting-core.md) | M2 report: double-entry journal, cash/bank accounts, transfers, owner capital, cash book, trial balance |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

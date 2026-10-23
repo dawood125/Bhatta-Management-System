@@ -64,6 +64,8 @@ Tags:
 
 ## E. Sales (before M8)
 
+M8 was built on the proposed defaults below (decisions D-078 to D-087). An answer can still change them.
+
 | ID | Question | Proposed default |
 |---|---|---|
 | Q-30 [BIZ] | Is stock **reserved when the order is made**, or only **reduced when bricks are picked up**? Can one order be picked up over several trips? | Reserve on confirm; reduce on each dispatch |

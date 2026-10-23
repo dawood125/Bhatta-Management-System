@@ -3,23 +3,40 @@
 namespace App\Livewire\Parties;
 
 use App\Accounting\LedgerQueries;
+use App\Actions\Sales\WriteOffBalance;
+use App\Enums\PartyRole;
 use App\Enums\Permission;
+use App\Livewire\Concerns\RunsActions;
 use App\Models\JournalLine;
 use App\Models\Party;
+use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
  * A party's statement (khata): balance before the period, every entry with a running balance,
- * and the closing balance. Printable.
+ * and the closing balance. Printable, and as a PDF. The owner can write off what a customer will
+ * never pay (bad debt).
+ *
+ * @property-read Money $currentBalance Livewire computed property
  */
 class PartyStatement extends Component
 {
+    use RunsActions;
+
     public Party $party;
+
+    public bool $showWriteOff = false;
+
+    /** @var array<string, string> */
+    public array $writeOffForm = [];
+
+    public string $formKey = '';
 
     #[Url]
     public string $from = '';
@@ -70,12 +87,42 @@ class PartyStatement extends Component
         return $this->party->balance();
     }
 
+    public function openWriteOff(): void
+    {
+        $this->authorize(Permission::SalesWriteOff->value);
+        $this->resetErrorBag();
+        $this->writeOffForm = [
+            'entry_date' => now()->format('Y-m-d'),
+            'amount' => $this->currentBalance->isPositive() ? $this->currentBalance->toDecimal() : '',
+            'reason' => '',
+        ];
+        $this->formKey = (string) Str::uuid();
+        $this->showWriteOff = true;
+    }
+
+    public function writeOff(WriteOffBalance $writeOff): void
+    {
+        /** @var User $actor */
+        $actor = auth()->user();
+        $entry = $this->runAction(fn () => $writeOff->handle($actor, $this->party, $this->writeOffForm, $this->formKey), 'writeOffForm');
+
+        $this->showWriteOff = false;
+        unset($this->statement, $this->currentBalance);
+        $this->toast(__(':number recorded.', ['number' => $entry->number]));
+    }
+
     public function render(): View
     {
         $this->party->loadMissing(['area', 'salesAgent']);
+        $roles = $this->party->roles();
+
+        /** @var User $actor */
+        $actor = auth()->user();
 
         return view('livewire.parties.party-statement', [
-            'roles' => $this->party->roles(),
+            'roles' => $roles,
+            'canWriteOff' => $actor->can(Permission::SalesWriteOff->value) && in_array(PartyRole::Customer, $roles, true) && $this->currentBalance->isPositive(),
+            'pdfUrl' => route('parties.statement.pdf', ['party' => $this->party, 'from' => $this->validDate($this->from), 'to' => $this->validDate($this->to)]),
         ])->title(__('Statement').' · '.$this->party->displayName());
     }
 

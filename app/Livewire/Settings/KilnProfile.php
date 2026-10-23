@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Settings;
 
+use App\Actions\Settings\SaveSalesSettings;
 use App\Actions\Settings\UpdateKilnProfile;
 use App\Enums\Permission;
 use App\Livewire\Concerns\RunsActions;
@@ -14,7 +15,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
 /**
- * The kiln's own details (owner only): names, address, contact and logo.
+ * The kiln's own details (owner only): names, address, contact and logo, and how invoices are
+ * emailed and printed.
  */
 class KilnProfile extends Component
 {
@@ -27,6 +29,9 @@ class KilnProfile extends Component
     public $logo = null;
 
     public bool $removeLogo = false;
+
+    /** @var array<string, mixed> */
+    public array $salesForm = [];
 
     public function mount(): void
     {
@@ -58,6 +63,18 @@ class KilnProfile extends Component
         $this->redirectRoute('settings.kiln', navigate: true);
     }
 
+    public function saveSales(SaveSalesSettings $saveSalesSettings): void
+    {
+        /** @var User $actor */
+        $actor = auth()->user();
+        $kiln = $this->kiln();
+
+        $this->runAction(fn () => $saveSalesSettings->handle($actor, $kiln, $this->salesForm), 'salesForm');
+
+        $this->fillForm($kiln->fresh() ?? $kiln);
+        $this->toast(__('Sales emails and invoices saved.'));
+    }
+
     public function render(): View
     {
         return view('livewire.settings.kiln-profile', ['kiln' => $this->kiln()])->title(__('Kiln profile'));
@@ -77,6 +94,12 @@ class KilnProfile extends Component
             'address_ur' => $kiln->address_ur,
             'phone' => $kiln->phone,
             'email' => $kiln->email,
+        ];
+
+        $this->salesForm = [
+            'sales_email_enabled' => $kiln->sales_email_enabled,
+            'sales_email_to' => (string) $kiln->sales_email_to,
+            'invoice_note' => (string) $kiln->invoice_note,
         ];
     }
 }

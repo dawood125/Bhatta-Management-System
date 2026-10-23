@@ -37,6 +37,7 @@ class Navigation
             [
                 'label' => __('Kiln'),
                 'items' => [
+                    ['label' => __('Sales'), 'route' => 'sales.index', 'icon' => 'shopping-cart', 'active' => 'sales.*', 'permissions' => [Permission::SalesView]],
                     ['label' => __('Production'), 'route' => 'production.index', 'icon' => 'factory', 'active' => 'production.*', 'permissions' => [Permission::ProductionView]],
                     ['label' => __('Materials'), 'route' => 'materials.index', 'icon' => 'package', 'active' => 'materials.*', 'permissions' => [Permission::MaterialsView]],
                     ['label' => __('Labour'), 'route' => 'labour.index', 'icon' => 'hard-hat', 'active' => 'labour.*', 'permissions' => [Permission::LabourView]],

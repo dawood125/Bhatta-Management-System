@@ -15,8 +15,8 @@ use App\Models\Material;
  *
  * Code ranges: 1xxx assets (1001-1099 cash/bank, 1100 receivables, 1200 material stock),
  * 2xxx liabilities (2001-2099 credit cards, 2100 payables, 2200 wages payable), 3xxx equity,
- * 4900 deductions from workers, 5001-5499 expense categories, 5501-5899 materials used,
- * 5900 material shortages, 6001-6499 labour categories.
+ * 4100 brick sales, 4900 deductions from workers, 5001-5499 expense categories, 5501-5899
+ * materials used, 5900 material shortages, 5910 bad debts, 6001-6499 labour categories.
  */
 class ChartOfAccounts
 {
@@ -29,8 +29,10 @@ class ChartOfAccounts
         ['key' => LedgerAccount::OWNER_CAPITAL, 'code' => '3000', 'name' => 'Owner capital', 'name_ur' => 'مالک کا سرمایہ', 'type' => AccountType::Equity],
         ['key' => LedgerAccount::OWNER_DRAWINGS, 'code' => '3100', 'name' => 'Owner withdrawals', 'name_ur' => 'مالک کی نکاسی', 'type' => AccountType::Equity],
         ['key' => LedgerAccount::OPENING_BALANCE_EQUITY, 'code' => '3900', 'name' => 'Opening balances', 'name_ur' => 'ابتدائی بیلنس', 'type' => AccountType::Equity],
+        ['key' => LedgerAccount::SALES, 'code' => '4100', 'name' => 'Brick sales', 'name_ur' => 'اینٹوں کی فروخت', 'type' => AccountType::Income],
         ['key' => LedgerAccount::WORKER_DEDUCTIONS, 'code' => '4900', 'name' => 'Deductions from workers', 'name_ur' => 'مزدوروں سے کٹوتی', 'type' => AccountType::Income],
         ['key' => LedgerAccount::MATERIAL_SHORTAGES, 'code' => '5900', 'name' => 'Material shortages', 'name_ur' => 'میٹریل کی کمی', 'type' => AccountType::Expense],
+        ['key' => LedgerAccount::BAD_DEBTS, 'code' => '5910', 'name' => 'Bad debts written off', 'name_ur' => 'ناقابلِ وصول رقم', 'type' => AccountType::Expense],
     ];
 
     /** Must run inside the kiln context. Never changes existing rows. */

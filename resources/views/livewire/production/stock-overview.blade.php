@@ -29,10 +29,14 @@
             <x-ui.th class="min-w-48">{{ __('Ready for sale, by grade') }}</x-ui.th>
             <x-ui.th>{{ __('Type') }}</x-ui.th>
             <x-ui.th align="end">{{ __('In stock') }}</x-ui.th>
+            <x-ui.th align="end">{{ __('Reserved for sales') }}</x-ui.th>
+            <x-ui.th align="end">{{ __('Free to sell') }}</x-ui.th>
         </x-slot:head>
 
         @forelse ($this->products as $product)
             @php($quantity = $this->levels['saleable'][$product->id] ?? \App\Support\Quantity::zero())
+            @php($held = \App\Support\Quantity::fromMilli($this->reserved[$product->id] ?? 0))
+            @php($free = $quantity->subtract($held))
             <tr wire:key="grade-{{ $product->id }}" @class(['opacity-60' => ! $product->is_active])>
                 <x-ui.td><x-settings.name-cell :record="$product" /></x-ui.td>
                 <x-ui.td><x-ui.badge :tone="$product->kind === \App\Enums\ProductKind::FiredGrade ? 'brand' : 'neutral'">{{ $product->kind->label() }}</x-ui.badge></x-ui.td>
@@ -40,9 +44,18 @@
                     <span @class(['tabular font-semibold', 'text-stone-400' => $quantity->isZero(), 'text-stone-900' => ! $quantity->isZero()]) dir="ltr">{{ $quantity->format($product->unit->decimals) }}</span>
                     <span class="text-xs text-stone-500">{{ $product->unit->code === Unit::BRICK ? __('bricks') : ($product->unit->symbol ?? $product->unit->displayName()) }}</span>
                 </x-ui.td>
+                <x-ui.td align="end" class="whitespace-nowrap">
+                    <span @class(['tabular', 'text-stone-400' => $held->isZero(), 'text-amber-700' => ! $held->isZero()]) dir="ltr">{{ $held->format($product->unit->decimals) }}</span>
+                </x-ui.td>
+                <x-ui.td align="end" class="whitespace-nowrap">
+                    <span @class(['tabular font-semibold', 'text-red-700' => $free->isNegative(), 'text-stone-900' => ! $free->isNegative()]) dir="ltr">{{ $free->format($product->unit->decimals) }}</span>
+                    @if ($free->isNegative())
+                        <p class="text-xs text-red-700">{{ __('Less in stock than sold: check the count.') }}</p>
+                    @endif
+                </x-ui.td>
             </tr>
         @empty
-            <tr><td colspan="3"><x-ui.empty-state icon="brick-wall" :title="__('No grades yet')" :description="__('Add grades such as Awal and Doom in Kiln settings.')" /></td></tr>
+            <tr><td colspan="5"><x-ui.empty-state icon="brick-wall" :title="__('No grades yet')" :description="__('Add grades such as Awal and Doom in Kiln settings.')" /></td></tr>
         @endforelse
     </x-ui.table>
 

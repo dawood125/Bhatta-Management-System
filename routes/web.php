@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PartyStatementPdfController;
+use App\Http\Controllers\SaleInvoiceController;
 use App\Http\Controllers\SettingsHomeController;
 use App\Livewire\Accounts\AccountIndex;
 use App\Livewire\Accounts\CashBook;
@@ -31,6 +33,12 @@ use App\Livewire\Production\EntryIndex;
 use App\Livewire\Production\StockOverview;
 use App\Livewire\Profile\ProfileEdit;
 use App\Livewire\Reports\TrialBalance;
+use App\Livewire\Sales\DispatchIndex;
+use App\Livewire\Sales\DriversDue;
+use App\Livewire\Sales\EmailLogIndex;
+use App\Livewire\Sales\SaleForm;
+use App\Livewire\Sales\SaleIndex;
+use App\Livewire\Sales\SaleShow;
 use App\Livewire\Settings\AreaIndex;
 use App\Livewire\Settings\ExpenseCategoryIndex;
 use App\Livewire\Settings\KilnProfile;
@@ -55,11 +63,22 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
 
     Route::livewire('/parties', PartyIndex::class)->name('parties.index');
     Route::livewire('/parties/{party}', PartyStatement::class)->name('parties.show');
+    Route::get('/parties/{party}/statement.pdf', PartyStatementPdfController::class)->name('parties.statement.pdf');
 
     Route::livewire('/vouchers', VoucherIndex::class)->name('vouchers.index');
     Route::livewire('/vouchers/new/{kind}', VoucherForm::class)->whereIn('kind', ['payment', 'receipt'])->name('vouchers.create');
     Route::livewire('/vouchers/{entry}', VoucherShow::class)->whereNumber('entry')->name('vouchers.show');
     Route::livewire('/expenses', ExpenseIndex::class)->name('expenses.index');
+
+    Route::prefix('sales')->name('sales.')->group(function () {
+        Route::livewire('/', SaleIndex::class)->name('index');
+        Route::livewire('/new', SaleForm::class)->name('create');
+        Route::livewire('/deliveries', DispatchIndex::class)->name('deliveries');
+        Route::livewire('/drivers', DriversDue::class)->name('drivers');
+        Route::livewire('/emails', EmailLogIndex::class)->name('emails');
+        Route::livewire('/{sale}', SaleShow::class)->whereNumber('sale')->name('show');
+        Route::get('/{sale}/invoice', SaleInvoiceController::class)->whereNumber('sale')->name('invoice');
+    });
 
     Route::prefix('production')->name('production.')->group(function () {
         Route::livewire('/', StockOverview::class)->name('index');

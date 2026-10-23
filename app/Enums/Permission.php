@@ -34,6 +34,10 @@ enum Permission: string
     case LabourPay = 'labour.pay';
     case LabourWorkers = 'labour.workers';
     case LabourRates = 'labour.rates';
+    case SalesView = 'sales.view';
+    case SalesRecord = 'sales.record';
+    case SalesAdjust = 'sales.adjust';
+    case SalesWriteOff = 'sales.write_off';
 
     public function label(): string
     {
@@ -64,6 +68,10 @@ enum Permission: string
             self::LabourPay => __('Give advances and settle wages'),
             self::LabourWorkers => __('Add and edit workers'),
             self::LabourRates => __('Set labour categories and rates'),
+            self::SalesView => __('View sales, deliveries and invoices'),
+            self::SalesRecord => __('Record sales and deliveries, and email invoices'),
+            self::SalesAdjust => __('Cancel sales and reverse deliveries'),
+            self::SalesWriteOff => __('Write off what customers cannot pay (bad debts)'),
         };
     }
 }

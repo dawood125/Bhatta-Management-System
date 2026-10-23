@@ -47,6 +47,10 @@ class LedgerAccount extends Model
 
     public const WORKER_DEDUCTIONS = 'worker_deductions';
 
+    public const SALES = 'sales';
+
+    public const BAD_DEBTS = 'bad_debts';
+
     /** Lines on this account must name a worker (each worker's wages account). */
     public function requiresWorker(): bool
     {

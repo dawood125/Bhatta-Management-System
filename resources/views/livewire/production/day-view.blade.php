@@ -118,6 +118,37 @@
                 <tr><td colspan="4"><x-ui.empty-state icon="factory" :title="__('Nothing recorded on this day')" /></td></tr>
             @endforelse
         </x-ui.table>
+
+        @if ($this->dispatches->isNotEmpty())
+            <h2 class="mb-2 mt-6 text-base font-semibold text-stone-900">{{ __('Delivered to customers') }}</h2>
+            <x-ui.table>
+                <x-slot:head>
+                    <x-ui.th>{{ __('Number') }}</x-ui.th>
+                    <x-ui.th class="min-w-72">{{ __('Details') }}</x-ui.th>
+                    <x-ui.th>{{ __('By') }}</x-ui.th>
+                </x-slot:head>
+                @foreach ($this->dispatches as $dispatch)
+                    <tr wire:key="day-dispatch-{{ $dispatch->id }}" @class(['align-top', 'bg-red-50/40' => $dispatch->isReversed()])>
+                        <x-ui.td class="whitespace-nowrap">
+                            <span class="tabular font-medium text-stone-800" dir="ltr">{{ $dispatch->number }}</span>
+                            @if ($dispatch->isReversed())
+                                <x-ui.badge tone="danger" icon="undo-2" class="ms-1">{{ __('Reversed') }}</x-ui.badge>
+                            @endif
+                        </x-ui.td>
+                        <x-ui.td>
+                            <p class="font-medium text-stone-900">{{ $dispatch->sale->customer->displayName() }} · <a href="{{ route('sales.show', $dispatch->sale) }}" wire:navigate class="tabular text-brand-700 hover:underline" dir="ltr">{{ $dispatch->sale->number }}</a></p>
+                            <p class="text-sm text-stone-600">
+                                @foreach ($dispatch->lines as $dl)
+                                    @php($line = $dispatch->sale->lines->firstWhere('id', $dl->sale_line_id))
+                                    <span class="whitespace-nowrap">{{ $line?->product->displayName() }} <bdi class="tabular">{{ $dl->quantity->format($line?->product->unit->decimals ?? 0) }}</bdi></span>@if (! $loop->last)<span class="text-stone-300"> · </span>@endif
+                                @endforeach
+                            </p>
+                        </x-ui.td>
+                        <x-ui.td class="whitespace-nowrap text-stone-600">{{ $dispatch->creator?->name ?? __('System') }}</x-ui.td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
+        @endif
     @endif
 
     <livewire:production.entry-forms />

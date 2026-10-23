@@ -24,8 +24,10 @@ class JournalPresenter
             JournalType::MaterialPurchase => 'info',
             JournalType::MaterialAdjustment, JournalType::WorkerDeduction => 'warning',
             JournalType::Wages => 'info',
-            JournalType::WorkerAdvance, JournalType::WagePayment => 'neutral',
-            JournalType::Reversal => 'danger',
+            JournalType::WorkerAdvance, JournalType::WagePayment, JournalType::Carriage => 'neutral',
+            JournalType::Sale => 'success',
+            JournalType::SaleCredit => 'warning',
+            JournalType::BadDebt, JournalType::Reversal => 'danger',
         };
     }
 
@@ -52,6 +54,15 @@ class JournalPresenter
             return filled($entry->memo) ? $label.': '.$entry->memo : $label;
         }
 
+        // A credit note and a write-off name the customer; the typed reason follows.
+        if ($entry->type === JournalType::SaleCredit || $entry->type === JournalType::BadDebt) {
+            $label = $entry->type === JournalType::SaleCredit
+                ? __('Bricks not delivered: :names', ['names' => $credits])
+                : __('Written off: :names', ['names' => $credits]);
+
+            return filled($entry->memo) ? $label.' ('.$entry->memo.')' : $label;
+        }
+
         if ($entry->type !== JournalType::Reversal && filled($entry->memo)) {
             return (string) $entry->memo;
         }
@@ -72,6 +83,8 @@ class JournalPresenter
                 : __('Advance paid back by :names', ['names' => $credits]),
             JournalType::WorkerDeduction => __('Deduction: :names', ['names' => $debits]),
             JournalType::WagePayment => __('Wages paid: :names', ['names' => $debits]),
+            JournalType::Sale => __('Sale to :names', ['names' => $debits]),
+            JournalType::Carriage => __('Carriage of :driver, charged to :customer', ['driver' => $credits, 'customer' => $debits]),
         };
     }
 

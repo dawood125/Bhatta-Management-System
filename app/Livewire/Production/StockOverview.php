@@ -7,6 +7,7 @@ use App\Enums\ProductKind;
 use App\Models\Product;
 use App\Models\ProductionStage;
 use App\Production\BrickStock;
+use App\Sales\SaleStock;
 use App\Support\Quantity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -16,9 +17,11 @@ use Livewire\Component;
 
 /**
  * Brick stock now: how many bricks are raw, in the kiln, fired and awaiting Nakaasi, and ready
- * for sale by grade. The production dialogs open from here.
+ * for sale by grade (with what open sales still have to collect). The production dialogs open
+ * from here.
  *
  * @property-read array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, saleable: array<int, Quantity>} $levels Livewire computed property
+ * @property-read array<int, int> $reserved Livewire computed property
  */
 class StockOverview extends Component
 {
@@ -34,6 +37,17 @@ class StockOverview extends Component
     public function levels(): array
     {
         return app(BrickStock::class)->levels();
+    }
+
+    /**
+     * Bricks open sales still have to collect, per product (thousandths).
+     *
+     * @return array<int, int>
+     */
+    #[Computed]
+    public function reserved(): array
+    {
+        return app(SaleStock::class)->reserved();
     }
 
     /**
@@ -67,7 +81,7 @@ class StockOverview extends Component
     #[On('production-recorded')]
     public function refresh(): void
     {
-        unset($this->levels, $this->products);
+        unset($this->levels, $this->products, $this->reserved);
     }
 
     public function render(): View

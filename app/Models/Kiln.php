@@ -21,9 +21,12 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $phone
  * @property string|null $email
  * @property string|null $logo_path
+ * @property bool $sales_email_enabled
+ * @property string|null $sales_email_to
+ * @property string|null $invoice_note
  * @property bool $is_active
  */
-#[Fillable(['name', 'name_ur', 'address', 'address_ur', 'phone', 'email', 'logo_path', 'is_active'])]
+#[Fillable(['name', 'name_ur', 'address', 'address_ur', 'phone', 'email', 'logo_path', 'sales_email_enabled', 'sales_email_to', 'invoice_note', 'is_active'])]
 class Kiln extends Model
 {
     /** @use HasFactory<KilnFactory> */
@@ -32,6 +35,7 @@ class Kiln extends Model
     protected function casts(): array
     {
         return [
+            'sales_email_enabled' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -55,10 +59,30 @@ class Kiln extends Model
         return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
     }
 
+    /**
+     * The addresses that receive sales emails (invoices), whether or not sending is switched on.
+     *
+     * @return list<string>
+     */
+    public function salesEmailAddresses(): array
+    {
+        return array_values(array_unique(array_filter(array_map(fn (string $email) => mb_strtolower(trim($email)), explode(',', (string) $this->sales_email_to)))));
+    }
+
+    /**
+     * Where each new sale's invoice is emailed automatically: nowhere unless sales emails are on.
+     *
+     * @return list<string>
+     */
+    public function salesEmailRecipients(): array
+    {
+        return $this->sales_email_enabled ? $this->salesEmailAddresses() : [];
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'name_ur', 'address', 'address_ur', 'phone', 'email', 'logo_path', 'is_active'])
+            ->logOnly(['name', 'name_ur', 'address', 'address_ur', 'phone', 'email', 'logo_path', 'sales_email_enabled', 'sales_email_to', 'invoice_note', 'is_active'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

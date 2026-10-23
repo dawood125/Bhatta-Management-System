@@ -59,9 +59,40 @@ class VoucherForm extends Component
             'account_id' => (string) ($this->accounts->first()->id ?? ''),
             'entry_date' => now()->format('Y-m-d'),
             'memo' => '',
-            'lines' => [$this->blankLine()],
+            'lines' => $this->prefilledLines() ?: [$this->blankLine()],
         ];
         $this->formKey = (string) Str::uuid();
+    }
+
+    /**
+     * Lines handed over by another page, e.g. "Pay drivers" from the drivers-due list:
+     * ?lines=12:6000,15:3000 (party id : amount). Unknown or archived parties are left out.
+     *
+     * @return list<array<string, string>>
+     */
+    private function prefilledLines(): array
+    {
+        $pairs = [];
+        foreach (explode(',', (string) request()->query('lines', '')) as $pair) {
+            [$id, $amount] = array_pad(explode(':', trim($pair), 2), 2, '');
+            if (ctype_digit($id) && preg_match('/^\d{1,13}(\.\d{1,2})?$/', $amount) === 1) {
+                $pairs[(int) $id] = $amount;
+            }
+        }
+
+        if ($pairs === []) {
+            return [];
+        }
+
+        $parties = Party::query()->where('is_active', true)->whereKey(array_keys($pairs))->pluck('id')->all();
+        $lines = [];
+        foreach (array_slice($pairs, 0, RecordVoucher::MAX_LINES, true) as $id => $amount) {
+            if (in_array($id, $parties, true)) {
+                $lines[] = ['party_id' => (string) $id, 'amount' => $amount] + $this->blankLine();
+            }
+        }
+
+        return $lines;
     }
 
     public function rendered(): void

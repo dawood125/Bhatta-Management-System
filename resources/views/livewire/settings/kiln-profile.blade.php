@@ -1,4 +1,4 @@
-<x-settings.shell :title="__('Kiln profile')" :description="__('Your kiln\'s name and contact details. They appear on screens now and on invoices later.')">
+<x-settings.shell :title="__('Kiln profile')" :description="__('Your kiln\'s name and contact details. They appear on screens and on invoices.')">
     <form wire:submit="save" class="grid gap-6 lg:grid-cols-3">
         <x-ui.card class="space-y-4 lg:col-span-2">
             <div class="grid gap-4 sm:grid-cols-2">
@@ -62,6 +62,25 @@
             @endif
 
             <p class="text-xs text-stone-500">{{ __('The new logo is saved when you press "Save profile".') }}</p>
+        </x-ui.card>
+    </form>
+
+    <form wire:submit="saveSales" class="mt-6 grid gap-6 lg:grid-cols-3">
+        <x-ui.card class="space-y-4 lg:col-span-2">
+            <div>
+                <h2 class="text-base font-semibold text-stone-900">{{ __('Sales emails and invoices') }}</h2>
+                <p class="text-sm text-stone-500">{{ __('Each new sale can be emailed to the owner with its invoice as a PDF.') }}</p>
+            </div>
+            <x-ui.checkbox id="sales-email-enabled" wire:model.live="salesForm.sales_email_enabled" :label="__('Email each new sale')" :description="__('Sent in the background; the invoice emails page shows when each one went out.')" />
+            <x-ui.field :label="__('Email addresses')" for="sales-email-to" error="salesForm.sales_email_to" :hint="__('Separate several addresses with commas (at most 5).')">
+                <x-ui.input id="sales-email-to" wire:model="salesForm.sales_email_to" dir="ltr" placeholder="owner@example.com" />
+            </x-ui.field>
+            <x-ui.field :label="__('Note on invoices')" for="invoice-note" error="salesForm.invoice_note" :hint="__('Optional. Printed at the bottom of every invoice, e.g. terms or bank details.')">
+                <x-ui.input id="invoice-note" wire:model="salesForm.invoice_note" />
+            </x-ui.field>
+            <div class="flex justify-end border-t border-stone-100 pt-4">
+                <x-ui.button type="submit" icon="check" loading="saveSales">{{ __('Save') }}</x-ui.button>
+            </div>
         </x-ui.card>
     </form>
 </x-settings.shell>

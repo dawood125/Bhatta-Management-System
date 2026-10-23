@@ -37,6 +37,7 @@ class Navigation
             [
                 'label' => __('Kiln'),
                 'items' => [
+                    ['label' => __('Production'), 'route' => 'production.index', 'icon' => 'factory', 'active' => 'production.*', 'permissions' => [Permission::ProductionView]],
                     ['label' => __('Materials'), 'route' => 'materials.index', 'icon' => 'package', 'active' => 'materials.*', 'permissions' => [Permission::MaterialsView]],
                 ],
             ],

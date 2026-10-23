@@ -50,6 +50,17 @@ class RecordMaterialUsage
     {
         $this->authorizeSettings($actor, Permission::MaterialsRecord);
 
+        return $this->record($actor, $input, $idempotencyKey);
+    }
+
+    /**
+     * Record usage for a caller that has already checked the actor's permission, e.g. the fuel
+     * of a firing entry recorded by someone allowed to record production.
+     *
+     * @param  array<string, mixed>  $input  usage_date, notes, lines[] = {material_id, quantity, memo}
+     */
+    public function record(User $actor, array $input, string $idempotencyKey): MaterialUsage
+    {
         if (($existing = $this->findByKey($idempotencyKey)) !== null) {
             return $existing;
         }

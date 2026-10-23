@@ -14,5 +14,6 @@
 | [modules/M3-parties.md](modules/M3-parties.md) | M3 report: customers, suppliers, drivers, sales agents, opening balances, party statements |
 | [modules/M4-payments-and-expenses.md](modules/M4-payments-and-expenses.md) | M4 report: payment and receipt vouchers, expenses by category, reversals, payments/receipts and expense reports |
 | [modules/M5-materials.md](modules/M5-materials.md) | M5 report: materials, purchases with extra charges, usage, stock at average cost, stock card, material cost report |
+| [modules/M6-production.md](modules/M6-production.md) | M6 report: Pathai, loading, firing with fuel, Nakaasi by grade, brick stock by stage and grade, daily production view |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

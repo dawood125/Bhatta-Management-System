@@ -78,7 +78,7 @@ class UsageIndex extends Component
     public function usages(): ?LengthAwarePaginator
     {
         return $this->filtered()
-            ?->with(['entry', 'creator', 'movements.material.unit'])
+            ?->with(['entry', 'creator', 'movements.material.unit', 'productionEntry'])
             ->orderByDesc('usage_date')
             ->orderByDesc('id')
             ->paginate(25);

@@ -62,6 +62,9 @@
                         @if ($usage->isReversed())
                             <x-ui.badge tone="danger" icon="undo-2" class="mb-1">{{ __('Reversed') }}</x-ui.badge>
                         @endif
+                        @if ($usage->productionEntry)
+                            <x-ui.badge tone="danger" icon="flame" class="mb-1">{{ __('Firing :number', ['number' => $usage->productionEntry->number]) }}</x-ui.badge>
+                        @endif
                         <ul class="space-y-0.5">
                             @foreach ($usage->movements as $movement)
                                 <li class="flex flex-wrap justify-between gap-x-4">
@@ -85,7 +88,8 @@
                     <x-ui.td align="end" @class(['font-medium', 'line-through decoration-stone-400' => $usage->isReversed()])><x-ui.money :amount="$usage->total_cost" /></x-ui.td>
                     @if ($canReverse)
                         <x-ui.td align="end" class="print:hidden">
-                            @unless ($usage->isReversed())
+                            {{-- Fuel of a firing entry is reversed with that entry (Production). --}}
+                            @unless ($usage->isReversed() || $usage->productionEntry)
                                 <x-ui.button size="sm" variant="ghost" icon="undo-2" wire:click="confirmReverse({{ $usage->journal_entry_id }})" :aria-label="__('Reverse :number', ['number' => $usage->entry->number])" :title="__('Reverse')" />
                             @endunless
                         </x-ui.td>

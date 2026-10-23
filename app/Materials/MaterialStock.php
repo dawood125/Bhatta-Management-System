@@ -8,6 +8,7 @@ use App\Models\MaterialMovement;
 use App\Support\Kiln\CurrentKiln;
 use App\Support\Money;
 use App\Support\Quantity;
+use App\Support\RunningStock;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonInterface;
@@ -106,8 +107,6 @@ class MaterialStock
      */
     public function lowestFrom(Material $material, CarbonInterface $date, Quantity $change): Quantity
     {
-        $day = $date->format('Y-m-d');
-
         $nets = DB::table('material_movements')
             ->where('kiln_id', $this->currentKiln->id())
             ->where('material_id', $material->id)
@@ -115,31 +114,10 @@ class MaterialStock
             ->orderBy('movement_date')
             ->select('movement_date')
             ->selectRaw('SUM(quantity_in) - SUM(quantity_out) AS net')
-            ->get();
+            ->get()
+            ->mapWithKeys(fn ($row) => [substr((string) $row->movement_date, 0, 10) => (int) $row->net]);
 
-        $running = 0;
-        $atDate = null;
-        $lowest = null;
-
-        foreach ($nets as $row) {
-            $rowDay = substr((string) $row->movement_date, 0, 10);
-
-            if ($rowDay > $day && $atDate === null) {
-                $atDate = $running + $change->milli;
-                $lowest = $atDate;
-            }
-
-            $running += (int) $row->net;
-
-            if ($rowDay >= $day) {
-                $atDate ??= $running + $change->milli;
-                $lowest = min($lowest ?? PHP_INT_MAX, $running + $change->milli);
-            }
-        }
-
-        $lowest ??= $running + $change->milli;
-
-        return Quantity::fromMilli($lowest);
+        return Quantity::fromMilli(RunningStock::lowestFrom($nets, $date->format('Y-m-d'), $change->milli));
     }
 
     /**

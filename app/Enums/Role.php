@@ -44,7 +44,7 @@ enum Role: string
     {
         return match ($this) {
             self::Owner => Permission::cases(),
-            self::Manager => [Permission::UsersView, Permission::UsersManage, Permission::ActivityView],
+            self::Manager => [Permission::UsersView, Permission::UsersManage, Permission::ActivityView, Permission::SettingsManage],
             self::Munshi => [],
             self::DataEntry => [],
             self::Viewer => [],

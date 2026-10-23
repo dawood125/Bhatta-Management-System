@@ -18,7 +18,10 @@ class KilnFactory extends Factory
             'name' => 'Test Kiln '.fake()->unique()->numberBetween(1, 99999),
             'name_ur' => null,
             'address' => null,
+            'address_ur' => null,
             'phone' => null,
+            'email' => null,
+            'logo_path' => null,
             'is_active' => true,
         ];
     }

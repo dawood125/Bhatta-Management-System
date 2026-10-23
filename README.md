@@ -7,7 +7,7 @@ Planning, decisions and module reports are in [`docs/`](docs/README.md).
 ## Stack
 - Laravel 13 (PHP 8.3+), MySQL 8 / MariaDB 10.11
 - Livewire 4 + Alpine.js, Tailwind CSS 4, Vite
-- Pest 4 (unit, feature and browser tests), Larastan, Pint
+- Pest 4 (unit and feature tests), Larastan, Pint
 
 ## Local setup
 ```bash
@@ -29,8 +29,7 @@ Never run the demo seeder in production (it refuses to).
 
 ## Quality checks
 ```bash
-./vendor/bin/pest --testsuite=Unit,Feature   # fast suite (uses the gbricks_test MySQL database)
-./vendor/bin/pest --testsuite=Browser        # real Chromium tests (needs Playwright's Chromium)
+./vendor/bin/pest              # all tests (uses the gbricks_test MySQL database)
 ./vendor/bin/phpstan analyse
 ./vendor/bin/pint --test
 ```

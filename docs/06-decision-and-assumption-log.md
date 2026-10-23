@@ -28,6 +28,12 @@
 | D-022 | 2026-10-18 | Business rules: nobody can change their own role or deactivate themselves; only an owner can create or change an owner; a kiln always keeps at least one active owner | Agent | Final |
 | D-023 | 2026-10-18 | Timezone Asia/Karachi. Urdu UI uses Inter for Latin letters and digits and Noto Nastaliq Urdu for Urdu letters (self-hosted fonts, no CDN), one step larger type and taller lines | Agent | Final |
 | D-024 | 2026-10-18 | Working product name "Bhatta Manager" (`APP_NAME` in `.env`, so it can be changed per client) | Agent | Provisional |
+| D-026 | 2026-10-18 | Production stages are 4 fixed kinds (raw, in firing, fired awaiting Nakaasi, saleable) that kilns can rename but not add, remove or reorder; rejected, sold and broken bricks leave stages through movements (M6) | Agent, using defaults for Q-13 | Final unless Q-13 answer changes it |
+| D-027 | 2026-10-18 | Product types: fired grade, raw brick, by-product. Fired grades and raw bricks must use the built-in Brick unit | Agent | Final |
+| D-028 | 2026-10-18 | Master data (products, units, areas, expense categories) is archived, never deleted; names are unique per kiln in English and Urdu | Agent | Final |
+| D-029 | 2026-10-18 | Currency fixed to PKR and date display DD-MM-YYYY for v1 (no per-kiln setting) | Agent | Final for v1 |
+| D-030 | 2026-10-18 | Kiln logo: PNG/JPG/WebP up to 1 MB on the public disk; SVG refused (can carry scripts); edited by the owner only | Agent | Final |
+| D-025 | 2026-10-18 | No automated real-browser (Chromium) test suite: it was very slow on the development PC. The Definition of Done uses feature tests (incl. Livewire) plus a manual check in the built-in browser (desktop + phone, English + Urdu) | User | Final |
 
 ## Assumptions (to be confirmed)
 
@@ -39,6 +45,8 @@
 | A-004 | The reference "Location" is a customer area / route, not a kiln site | Party and order data | Q-02 |
 | A-005 | The carriage charged to the customer equals what the driver receives (the bhatta keeps no margin) | Owner's description (Q-04) | Q-27 |
 | A-006 | Drivers are independent tractor-trolley owners (parties), not salaried employees | Reference data (435 driver parties) + Q-04 | You |
+| A-007 | Default grades and Urdu spellings: Awal اوّل, Doom دوم, Khingar کھنگر, Tile ٹائل, Tooty ٹوٹا, Rora روڑا (sold per trolley), Kachi کچی اینٹ (not for sale) | Owner's notes + reference product list | Owner (Q-16) |
+| A-008 | Default stage names: Raw bricks (Pathai), In the kiln (Julai), Fired awaiting Nakaasi, Ready for sale | Owner's notes | Owner (Q-13) |
 
 ## Environment notes
 

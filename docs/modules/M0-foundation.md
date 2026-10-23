@@ -33,11 +33,11 @@
 
 | Check | Command | Result |
 |---|---|---|
-| Unit + feature tests | `./vendor/bin/pest --testsuite=Unit,Feature` | **167 passed, 0 failed (626 assertions)** |
+| Unit + feature tests | `./vendor/bin/pest` | **168 passed, 0 failed (631 assertions)** |
 | Static analysis | `./vendor/bin/phpstan analyse` (Larastan, level 6) | **0 errors** |
 | Code style | `./vendor/bin/pint --test` | **passed** |
-| Browser tests (Chromium) | `./vendor/bin/pest --testsuite=Browser` | see "Browser tests" below |
-| Manual browser check | Built-in browser, desktop 1280px and phone 375px, English and Urdu | Done; issues found and fixed are listed below |
+| Manual browser check | Built-in browser, desktop 1280px and phone 375px, English and Urdu: login, dashboard, users (add / validation / edit), activity log, mobile menu, mobile dialog | Done; issues found and fixed are listed below |
+| Automated browser tests | Not kept (D-025): too slow on this PC, and the same behaviour is covered by the feature tests plus the manual checks | — |
 
 ### What the automated tests cover
 - **Money (37 tests):**
@@ -52,12 +52,12 @@
   - each kiln sees only its own rows;
   - no creating, updating, moving or deleting across kilns;
   - money columns stored as paisa.
-- **Login and sessions (19 tests):**
+- **Login and sessions (20 tests):**
   - username, email and case handling;
   - wrong password and unknown user get the same message;
   - deactivated users, users without a kiln and inactive kilns are refused;
   - throttling and logout;
-  - a user deactivated or removed while logged in is thrown out on their next click.
+  - a user deactivated or removed while logged in is thrown out on their next click, including background (Livewire) requests.
 - **User management (44 tests):** every permission and safety rule above, validation of every field, cross-kiln users giving "not found", and the action refusing unauthorised callers even when the screen is bypassed.
 - **Profile, activity log, language, install command, navigation and architecture rules:**
   - an Urdu translation must exist for every label;
@@ -71,6 +71,7 @@
 3. **Urdu readability:** the Urdu text was too small, and English names were rendered with the Urdu font's Latin letters. The Urdu text size is now one step larger, and Latin text and numbers use Inter.
 4. **Kiln history:** the kiln's own "created" entry was stored without a kiln. Fixed.
 5. **Toasts:** they covered the top bar. They now appear below it.
+6. **Open pages after deactivation or session expiry:** a click on an open page would have shown a raw error page inside a dialog, or an English-only "page expired" box. It now goes to the login page with the reason shown.
 
 ## Known limitations / not in M0
 - **No password reset by email yet:** there is no SMTP account. The owner or manager resets passwords.

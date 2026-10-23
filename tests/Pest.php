@@ -5,6 +5,7 @@ use App\Models\Kiln;
 use App\Models\User;
 use App\Support\Access\PermissionSynchronizer;
 use App\Support\Kiln\CurrentKiln;
+use App\Support\Kiln\KilnDefaults;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,7 +18,7 @@ pest()->extend(TestCase::class)
     ->beforeEach(function () {
         app(PermissionSynchronizer::class)->sync();
     })
-    ->in('Feature', 'Browser');
+    ->in('Feature');
 
 pest()->extend(TestCase::class)->in('Unit');
 
@@ -25,6 +26,15 @@ pest()->extend(TestCase::class)->in('Unit');
 function makeKiln(array $attributes = []): Kiln
 {
     return Kiln::factory()->create($attributes);
+}
+
+/** Create an active kiln with the default units, grades, stages and expense categories. */
+function makeSeededKiln(array $attributes = []): Kiln
+{
+    $kiln = makeKiln($attributes);
+    app(KilnDefaults::class)->seed($kiln);
+
+    return $kiln;
 }
 
 /** Create a user with a role in the given kiln. */

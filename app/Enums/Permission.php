@@ -11,6 +11,8 @@ enum Permission: string
     case UsersView = 'users.view';
     case UsersManage = 'users.manage';
     case ActivityView = 'activity.view';
+    case SettingsManage = 'settings.manage';
+    case KilnProfileManage = 'kiln.profile';
 
     public function label(): string
     {
@@ -18,6 +20,8 @@ enum Permission: string
             self::UsersView => __('View users'),
             self::UsersManage => __('Manage users'),
             self::ActivityView => __('View activity log'),
+            self::SettingsManage => __('Manage kiln settings'),
+            self::KilnProfileManage => __('Edit kiln profile'),
         };
     }
 }

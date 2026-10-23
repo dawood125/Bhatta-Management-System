@@ -4,12 +4,14 @@ namespace App\Actions\Production\Concerns;
 
 use App\Accounting\DocumentNumbers;
 use App\Accounting\LedgerIntegrityException;
+use App\Actions\Labour\RecordWorkEntry;
 use App\Enums\ProductionEntryKind;
 use App\Enums\StageKind;
 use App\Models\BrickMovement;
 use App\Models\ProductionEntry;
 use App\Models\ProductionStage;
 use App\Models\User;
+use App\Models\Worker;
 use App\Production\BrickStock;
 use App\Support\Quantity;
 use Carbon\CarbonInterface;
@@ -99,6 +101,33 @@ trait PostsProduction
                     'quantity' => $lowest->format($decimals),
                 ]),
             ]);
+        }
+    }
+
+    /**
+     * The worker named on a Pathai, loading or Nakaasi entry, if any. Whether their category is
+     * paid for this work is checked when their wages are worked out.
+     */
+    protected function workerFrom(mixed $value): ?Worker
+    {
+        $id = trim((string) (is_scalar($value) ? $value : ''));
+        if ($id === '') {
+            return null;
+        }
+
+        $worker = ctype_digit($id) ? Worker::query()->with('category')->where('is_active', true)->find((int) $id) : null;
+        if ($worker === null) {
+            throw ValidationException::withMessages(['worker_id' => __('This worker is archived or does not exist.')]);
+        }
+
+        return $worker;
+    }
+
+    /** Wages for the bricks of this entry, when it names a worker. */
+    protected function payWorker(ProductionEntry $entry, ?Worker $worker, Quantity $bricks, User $actor): void
+    {
+        if ($worker !== null && $bricks->isPositive()) {
+            app(RecordWorkEntry::class)->forProduction($actor, $entry, $worker, $bricks);
         }
     }
 

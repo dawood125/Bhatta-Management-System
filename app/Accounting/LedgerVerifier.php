@@ -166,7 +166,66 @@ class LedgerVerifier
             }
         }
 
-        return [...$problems, ...$this->verifyMaterials(), ...$this->verifyProduction()];
+        return [...$problems, ...$this->verifyMaterials(), ...$this->verifyProduction(), ...$this->verifyLabour()];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function verifyLabour(): array
+    {
+        $problems = [];
+
+        // 16. Wages payable lines always name a worker; other lines never do; workers stay in their kiln.
+        $workerRule = DB::table('journal_lines as l')
+            ->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')
+            ->leftJoin('workers as w', 'w.id', '=', 'l.worker_id')
+            ->where(function ($q) {
+                $q->where(fn ($q) => $q->where('a.system_key', 'wages_payable')->whereNull('l.worker_id'))
+                    ->orWhere(fn ($q) => $q->where(fn ($q) => $q->whereNull('a.system_key')->orWhere('a.system_key', '!=', 'wages_payable'))->whereNotNull('l.worker_id'))
+                    ->orWhere(fn ($q) => $q->whereNotNull('l.worker_id')->whereColumn('w.kiln_id', '!=', 'l.kiln_id'));
+            })
+            ->pluck('l.id');
+        foreach ($workerRule as $id) {
+            $problems[] = "Line #{$id}: worker missing on a wages line, present on another account, or from another kiln.";
+        }
+
+        // 17. Each work entry matches its entry: the amount credited to that worker. Every wages entry has one.
+        $work = DB::table('work_entries as x')
+            ->join('journal_entries as e', 'e.id', '=', 'x.journal_entry_id')
+            ->select('x.id', 'e.number', 'e.type', 'e.total', 'x.amount')
+            ->selectRaw('(SELECT COALESCE(SUM(l.credit), 0) FROM journal_lines l WHERE l.journal_entry_id = x.journal_entry_id AND l.worker_id = x.worker_id) AS credited')
+            ->get();
+        foreach ($work as $w) {
+            if ($w->type !== 'wages' || (int) $w->total !== (int) $w->amount || (int) $w->credited !== (int) $w->amount) {
+                $problems[] = "Work entry #{$w->id} ({$w->number}): does not match its journal entry.";
+            }
+        }
+
+        $wagesWithoutWork = DB::table('journal_entries as e')
+            ->where('e.type', 'wages')
+            ->whereNotExists(fn ($q) => $q->from('work_entries as x')->whereColumn('x.journal_entry_id', 'e.id'))
+            ->pluck('e.number');
+        foreach ($wagesWithoutWork as $number) {
+            $problems[] = "Entry {$number}: a wages entry without its work entry.";
+        }
+
+        // 18. Settlements add up: lines paid = total paid = the payment entry; payable − paid = remaining.
+        $settlements = DB::table('settlements as s')
+            ->leftJoin('journal_entries as e', 'e.id', '=', 's.journal_entry_id')
+            ->select('s.number', 's.total_paid', 's.journal_entry_id', 'e.total as entry_total')
+            ->selectRaw('(SELECT COALESCE(SUM(paid), 0) FROM settlement_lines WHERE settlement_id = s.id) AS lines_paid')
+            // "paid" is unsigned: cast it, or a worker who owes the kiln (negative payable) overflows.
+            ->selectRaw('(SELECT COUNT(*) FROM settlement_lines WHERE settlement_id = s.id AND payable - CAST(paid AS SIGNED) <> remaining) AS bad_lines')
+            ->get();
+        foreach ($settlements as $s) {
+            $entryTotal = $s->journal_entry_id === null ? 0 : (int) $s->entry_total;
+            if ((int) $s->lines_paid !== (int) $s->total_paid || $entryTotal !== (int) $s->total_paid || (int) $s->bad_lines > 0) {
+                $problems[] = "Settlement {$s->number}: its lines, total and payment entry do not add up.";
+            }
+        }
+
+        return $problems;
     }
 
     /**

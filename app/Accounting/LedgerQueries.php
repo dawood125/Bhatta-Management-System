@@ -113,7 +113,7 @@ class LedgerQueries
             ->orderBy('journal_entries.entry_date')
             ->orderBy('journal_entries.id')
             ->orderBy('journal_lines.line_no')
-            ->with(['entry.lines.account', 'entry.lines.party', 'entry.creator'])
+            ->with(['entry.lines.account', 'entry.lines.party', 'entry.lines.worker', 'entry.creator'])
             ->get();
 
         $running = $opening;

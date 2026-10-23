@@ -2,6 +2,7 @@
 
 namespace App\Actions\Production;
 
+use App\Accounting\JournalPoster;
 use App\Actions\Materials\ReverseMaterialEntry;
 use App\Actions\Production\Concerns\PostsProduction;
 use App\Actions\Settings\Concerns\ValidatesSettings;
@@ -11,6 +12,7 @@ use App\Models\BrickMovement;
 use App\Models\ProductionEntry;
 use App\Models\ProductionStage;
 use App\Models\User;
+use App\Models\WorkEntry;
 use App\Support\Quantity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -87,6 +89,13 @@ class ReverseProductionEntry
                     'reversal_of_id' => $movement->id,
                     'created_by' => $actor->id,
                 ]);
+            }
+
+            // Wages earned with this entry are cancelled with it (a worker who was already paid
+            // then owes that amount, which the next settlement takes into account).
+            $wages = WorkEntry::query()->where('production_entry_id', $fresh->id)->with('entry')->first();
+            if ($wages !== null && ! $wages->entry->isReversed()) {
+                app(JournalPoster::class)->reverse($wages->entry, now(), $data['reason'], substr($fresh->idempotency_key, 0, 52).':wages-rev', $actor);
             }
 
             // The fuel of a firing entry goes back into material stock too.

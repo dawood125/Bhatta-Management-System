@@ -86,15 +86,19 @@ class RecordNakaasi
         }
 
         $date = Carbon::createFromFormat('Y-m-d', $data['entry_date'])->startOfDay();
+        $worker = $this->workerFrom($input['worker_id'] ?? null);
 
-        return $this->posting($idempotencyKey, ProductionEntryKind::Nakaasi, function () use ($actor, $data, $date, $parsed, $unloaded, $idempotencyKey): ProductionEntry {
+        return $this->posting($idempotencyKey, ProductionEntryKind::Nakaasi, function () use ($actor, $data, $date, $parsed, $unloaded, $worker, $idempotencyKey): ProductionEntry {
             $this->assertStageAllows(StageKind::FiredAwaitingUnloading, null, $date, Quantity::zero()->subtract($unloaded), 'lines');
 
-            $entry = $this->createEntry(ProductionEntryKind::Nakaasi, $date, ['quantity' => $unloaded, 'notes' => $data['notes']], $idempotencyKey, $actor);
+            $entry = $this->createEntry(ProductionEntryKind::Nakaasi, $date, ['quantity' => $unloaded, 'notes' => $data['notes'], 'worker_id' => $worker?->id], $idempotencyKey, $actor);
 
             foreach ($parsed as $line) {
                 $this->move($entry, $line['brick'] ? StageKind::FiredAwaitingUnloading : null, StageKind::Saleable, $line['product']->id, $line['quantity'], $actor);
             }
+
+            // Unloading is paid for the bricks unloaded (grades and broken ones).
+            $this->payWorker($entry, $worker, $unloaded, $actor);
 
             return $entry;
         });

@@ -71,11 +71,11 @@ class JournalPoster
             }
 
             $lines = [];
-            foreach ($original->lines()->with(['account', 'party'])->get() as $line) {
+            foreach ($original->lines()->with(['account', 'party', 'worker'])->get() as $line) {
                 $mirror = $line->debit->isPositive()
                     ? PendingLine::credit($line->account, $line->debit, $line->memo)
                     : PendingLine::debit($line->account, $line->credit, $line->memo);
-                $lines[] = $mirror->forParty($line->party);
+                $lines[] = $mirror->forParty($line->party)->forWorker($line->worker);
             }
 
             $reversal = $this->write(JournalType::Reversal, $date, $lines, $idempotencyKey, $by, $reason, $original);
@@ -133,6 +133,7 @@ class JournalPoster
                         'journal_entry_id' => $entry->id,
                         'ledger_account_id' => $line->account->id,
                         'party_id' => $line->party?->id,
+                        'worker_id' => $line->worker?->id,
                         'line_no' => $index + 1,
                         'debit' => $line->debit,
                         'credit' => $line->credit,
@@ -181,6 +182,19 @@ class JournalPoster
 
             if ($line->party !== null && (! $line->party->exists || $line->party->kiln_id !== $kilnId)) {
                 throw new LedgerIntegrityException('The party must belong to the current kiln.');
+            }
+
+            // Wages payable lines always name the worker; other accounts never do.
+            if ($line->account->requiresWorker() && $line->worker === null) {
+                throw new LedgerIntegrityException("Lines on {$line->account->name} must name a worker.");
+            }
+
+            if (! $line->account->requiresWorker() && $line->worker !== null) {
+                throw new LedgerIntegrityException("Lines on {$line->account->name} cannot name a worker.");
+            }
+
+            if ($line->worker !== null && (! $line->worker->exists || $line->worker->kiln_id !== $kilnId)) {
+                throw new LedgerIntegrityException('The worker must belong to the current kiln.');
             }
 
             $isDebit = $line->debit->isPositive() && $line->credit->isZero();

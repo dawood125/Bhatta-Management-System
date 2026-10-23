@@ -4,6 +4,7 @@ namespace App\Accounting;
 
 use App\Models\LedgerAccount;
 use App\Models\Party;
+use App\Models\Worker;
 use App\Support\Money;
 
 /**
@@ -17,6 +18,7 @@ final class PendingLine
         public readonly Money $credit,
         public readonly ?string $memo,
         public readonly ?Party $party = null,
+        public readonly ?Worker $worker = null,
     ) {}
 
     public static function debit(LedgerAccount $account, Money $amount, ?string $memo = null): self
@@ -32,6 +34,12 @@ final class PendingLine
     /** Tag the line with a customer/supplier (required on receivable and payable accounts). */
     public function forParty(?Party $party): self
     {
-        return new self($this->account, $this->debit, $this->credit, $this->memo, $party);
+        return new self($this->account, $this->debit, $this->credit, $this->memo, $party, $this->worker);
+    }
+
+    /** Tag the line with a worker (required on the wages payable account). */
+    public function forWorker(?Worker $worker): self
+    {
+        return new self($this->account, $this->debit, $this->credit, $this->memo, $this->party, $worker);
     }
 }

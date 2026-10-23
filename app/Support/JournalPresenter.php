@@ -22,7 +22,9 @@ class JournalPresenter
             JournalType::CapitalOut, JournalType::Payment => 'warning',
             JournalType::Expense, JournalType::MaterialUsage => 'brand',
             JournalType::MaterialPurchase => 'info',
-            JournalType::MaterialAdjustment => 'warning',
+            JournalType::MaterialAdjustment, JournalType::WorkerDeduction => 'warning',
+            JournalType::Wages => 'info',
+            JournalType::WorkerAdvance, JournalType::WagePayment => 'neutral',
             JournalType::Reversal => 'danger',
         };
     }
@@ -31,7 +33,7 @@ class JournalPresenter
     public static function describe(JournalEntry $entry): string
     {
         // Loads nothing when the caller already eager-loaded the lines (lists should).
-        $entry->loadMissing(['lines.account', 'lines.party']);
+        $entry->loadMissing(['lines.account', 'lines.party', 'lines.worker']);
 
         $debits = self::names($entry, debit: true);
         $credits = self::names($entry, debit: false);
@@ -64,13 +66,27 @@ class JournalPresenter
             JournalType::Payment => __('Paid to :names', ['names' => $debits]),
             JournalType::Receipt => __('Received from :names', ['names' => $credits]),
             JournalType::MaterialPurchase => __('Material purchase: :names', ['names' => $credits]),
+            JournalType::Wages => __('Wages of :names', ['names' => $credits]),
+            JournalType::WorkerAdvance => $entry->lines->contains(fn (JournalLine $line) => $line->worker_id !== null && $line->debit->isPositive())
+                ? __('Advance to :names', ['names' => $debits])
+                : __('Advance paid back by :names', ['names' => $credits]),
+            JournalType::WorkerDeduction => __('Deduction: :names', ['names' => $debits]),
+            JournalType::WagePayment => __('Wages paid: :names', ['names' => $debits]),
         };
     }
 
-    /** The party on a line, or else its account. */
+    /** The party or worker on a line, or else its account. */
     public static function lineName(JournalLine $line): string
     {
-        return $line->party_id !== null && $line->party !== null ? $line->party->displayName() : $line->account->displayName();
+        if ($line->party_id !== null && $line->party !== null) {
+            return $line->party->displayName();
+        }
+
+        if ($line->worker_id !== null && $line->worker !== null) {
+            return $line->worker->displayName();
+        }
+
+        return $line->account->displayName();
     }
 
     private static function names(JournalEntry $entry, bool $debit): string

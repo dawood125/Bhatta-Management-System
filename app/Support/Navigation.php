@@ -39,6 +39,7 @@ class Navigation
                 'items' => [
                     ['label' => __('Production'), 'route' => 'production.index', 'icon' => 'factory', 'active' => 'production.*', 'permissions' => [Permission::ProductionView]],
                     ['label' => __('Materials'), 'route' => 'materials.index', 'icon' => 'package', 'active' => 'materials.*', 'permissions' => [Permission::MaterialsView]],
+                    ['label' => __('Labour'), 'route' => 'labour.index', 'icon' => 'hard-hat', 'active' => 'labour.*', 'permissions' => [Permission::LabourView]],
                 ],
             ],
             [

@@ -68,7 +68,7 @@ class EntryIndex extends Component
                 ->where('number', 'like', "%{$search}%")
                 ->orWhere('team', 'like', "%{$search}%")
                 ->orWhere('notes', 'like', "%{$search}%")))
-            ->with(['movements.product.unit', 'creator', 'reverser', 'materialUsage.movements.material.unit'])
+            ->with(['movements.product.unit', 'creator', 'reverser', 'materialUsage.movements.material.unit', 'worker', 'workEntry'])
             ->orderByDesc('entry_date')
             ->orderByDesc('id')
             ->paginate(25);

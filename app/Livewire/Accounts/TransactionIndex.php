@@ -64,7 +64,7 @@ class TransactionIndex extends Component
         $search = trim($this->search);
 
         return JournalEntry::query()
-            ->with(['lines.account', 'lines.party', 'creator', 'reversalOf'])
+            ->with(['lines.account', 'lines.party', 'lines.worker', 'creator', 'reversalOf'])
             ->when(JournalType::tryFrom($this->type), fn (Builder $q, JournalType $type) => $q->where('type', $type))
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                 ->where('number', 'like', "%{$search}%")

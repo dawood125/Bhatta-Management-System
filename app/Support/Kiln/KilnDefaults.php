@@ -3,11 +3,14 @@
 namespace App\Support\Kiln;
 
 use App\Accounting\ChartOfAccounts;
+use App\Enums\LabourActivity;
 use App\Enums\MaterialKind;
+use App\Enums\PayBasis;
 use App\Enums\ProductKind;
 use App\Enums\StageKind;
 use App\Models\ExpenseCategory;
 use App\Models\Kiln;
+use App\Models\LabourCategory;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\ProductionStage;
@@ -72,6 +75,22 @@ class KilnDefaults
         ['code' => 'waste', 'name' => 'Waste fuel', 'name_ur' => 'ویسٹ (فضلہ)', 'kind' => MaterialKind::Fuel, 'unit' => 'trolley'],
     ];
 
+    /**
+     * How the kiln's labour is usually paid, as the owner described it. Local terms are kept as
+     * spoken and stay provisional until confirmed (Q-21). No rates: each kiln enters its own rate
+     * card, with the date it applies from.
+     *
+     * @var list<array{code: string, name: string, name_ur: string, basis: PayBasis, activity: LabourActivity|null}>
+     */
+    public const LABOUR_CATEGORIES = [
+        ['code' => 'pathai', 'name' => 'Pathai', 'name_ur' => 'پتھائی', 'basis' => PayBasis::PerThousand, 'activity' => LabourActivity::Pathai],
+        ['code' => 'kamyaar', 'name' => 'Kamyaar', 'name_ur' => 'کمیار', 'basis' => PayBasis::PerThousand, 'activity' => LabourActivity::Loading],
+        ['code' => 'nakaasi', 'name' => 'Nakaasi', 'name_ur' => 'نکاسی', 'basis' => PayBasis::PerThousand, 'activity' => LabourActivity::Nakaasi],
+        ['code' => 'barai', 'name' => 'Barai', 'name_ur' => 'بارائی', 'basis' => PayBasis::PerMonth, 'activity' => null],
+        ['code' => 'mistri', 'name' => 'Mistri (firing team)', 'name_ur' => 'مستری (جلائی ٹیم)', 'basis' => PayBasis::LumpSum, 'activity' => null],
+        ['code' => 'daily', 'name' => 'Daily labour', 'name_ur' => 'دیہاڑی دار', 'basis' => PayBasis::PerDay, 'activity' => null],
+    ];
+
     public function __construct(
         private readonly CurrentKiln $currentKiln,
         private readonly ChartOfAccounts $chartOfAccounts,
@@ -86,6 +105,7 @@ class KilnDefaults
                 $this->seedStages();
                 $this->seedExpenseCategories();
                 $this->seedMaterials();
+                $this->seedLabourCategories();
                 $this->chartOfAccounts->seedSystemAccounts();
             });
         });
@@ -111,6 +131,30 @@ class KilnDefaults
                 'name_ur' => $material['name_ur'],
                 'kind' => $material['kind'],
                 'unit_id' => $units[$material['unit']],
+                'is_active' => true,
+                'sort_order' => ($order + 1) * 10,
+            ]);
+        }
+    }
+
+    /** A category is skipped when the kiln already has it, or one with the same name. */
+    private function seedLabourCategories(): void
+    {
+        foreach (self::LABOUR_CATEGORIES as $order => $category) {
+            $exists = LabourCategory::query()
+                ->where(fn ($q) => $q->where('code', $category['code'])->orWhere('name', $category['name'])->orWhere('name_ur', $category['name_ur']))
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            LabourCategory::query()->create([
+                'code' => $category['code'],
+                'name' => $category['name'],
+                'name_ur' => $category['name_ur'],
+                'basis' => $category['basis'],
+                'activity' => $category['activity'],
                 'is_active' => true,
                 'sort_order' => ($order + 1) * 10,
             ]);

@@ -9,6 +9,14 @@ use App\Livewire\Activity\ActivityIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\Dev\ComponentGallery;
 use App\Livewire\Expenses\ExpenseIndex;
+use App\Livewire\Labour\AttendanceSheet;
+use App\Livewire\Labour\RateIndex;
+use App\Livewire\Labour\SettlementForm;
+use App\Livewire\Labour\SettlementIndex;
+use App\Livewire\Labour\SettlementShow;
+use App\Livewire\Labour\WorkerAccount;
+use App\Livewire\Labour\WorkerIndex;
+use App\Livewire\Labour\WorkIndex;
 use App\Livewire\Materials\CostReport;
 use App\Livewire\Materials\PurchaseForm;
 use App\Livewire\Materials\PurchaseIndex;
@@ -67,6 +75,17 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
         Route::livewire('/usage', UsageIndex::class)->name('usage');
         Route::livewire('/report', CostReport::class)->name('report');
         Route::livewire('/{material}', StockCard::class)->whereNumber('material')->name('show');
+    });
+
+    Route::prefix('labour')->name('labour.')->group(function () {
+        Route::livewire('/', WorkerIndex::class)->name('index');
+        Route::livewire('/workers/{worker}', WorkerAccount::class)->whereNumber('worker')->name('workers.show');
+        Route::livewire('/work', WorkIndex::class)->name('work');
+        Route::livewire('/attendance', AttendanceSheet::class)->name('attendance');
+        Route::livewire('/settlements', SettlementIndex::class)->name('settlements');
+        Route::livewire('/settlements/new', SettlementForm::class)->name('settlements.create');
+        Route::livewire('/settlements/{settlement}', SettlementShow::class)->whereNumber('settlement')->name('settlements.show');
+        Route::livewire('/rates', RateIndex::class)->name('rates');
     });
 
     Route::livewire('/accounts', AccountIndex::class)->name('accounts.index');

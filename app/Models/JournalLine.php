@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read JournalEntry $entry
  * @property-read LedgerAccount $account
  * @property-read Party|null $party
+ * @property int|null $worker_id
+ * @property-read Worker|null $worker
  */
 class JournalLine extends Model
 {
@@ -73,5 +75,13 @@ class JournalLine extends Model
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class);
+    }
+
+    /**
+     * @return BelongsTo<Worker, $this>
+     */
+    public function worker(): BelongsTo
+    {
+        return $this->belongsTo(Worker::class);
     }
 }

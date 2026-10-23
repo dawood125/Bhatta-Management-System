@@ -7,20 +7,26 @@ use App\Actions\Production\RecordFiring;
 use App\Actions\Production\RecordLoading;
 use App\Actions\Production\RecordNakaasi;
 use App\Actions\Production\RecordPathai;
+use App\Enums\LabourActivity;
 use App\Enums\MaterialKind;
+use App\Enums\PayBasis;
 use App\Enums\Permission;
 use App\Enums\ProductionEntryKind;
 use App\Enums\ProductKind;
 use App\Enums\StageKind;
+use App\Labour\WorkerLedger;
 use App\Livewire\Concerns\RunsActions;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\ProductionStage;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\Worker;
 use App\Production\BrickStock;
+use App\Support\Money;
 use App\Support\Quantity;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -37,6 +43,8 @@ use Livewire\Component;
  * @property-read Collection<int, Product> $gradeProducts Livewire computed property
  * @property-read Collection<int, Material> $fuelMaterials Livewire computed property
  * @property-read Collection<string, ProductionStage> $stages Livewire computed property
+ * @property-read array<int, string> $workerOptions Livewire computed property
+ * @property-read array{rate: Money, amount: Money|null}|null $wages Livewire computed property
  */
 class EntryForms extends Component
 {
@@ -63,18 +71,19 @@ class EntryForms extends Component
         $today = now()->format('Y-m-d');
 
         $this->form = match ($type) {
-            ProductionEntryKind::Pathai => ['entry_date' => $today, 'team' => '', 'made' => '', 'rejected' => '', 'notes' => ''],
-            ProductionEntryKind::Loading => ['entry_date' => $today, 'quantity' => '', 'notes' => ''],
+            ProductionEntryKind::Pathai => ['entry_date' => $today, 'worker_id' => '', 'team' => '', 'made' => '', 'rejected' => '', 'notes' => ''],
+            ProductionEntryKind::Loading => ['entry_date' => $today, 'worker_id' => '', 'quantity' => '', 'notes' => ''],
             ProductionEntryKind::Firing => ['entry_date' => $today, 'quantity' => '', 'notes' => '', 'fuel' => []],
             ProductionEntryKind::Nakaasi => [
                 'entry_date' => $today,
+                'worker_id' => '',
                 'notes' => '',
                 'lines' => $this->gradeProducts->map(fn (Product $p) => ['product_id' => (string) $p->id, 'quantity' => ''])->values()->all(),
             ],
             ProductionEntryKind::Adjustment => ['entry_date' => $today, 'stage' => StageKind::Saleable->value, 'product_id' => '', 'direction' => RecordBrickAdjustment::REMOVE, 'quantity' => '', 'reason' => ''],
         };
 
-        unset($this->levels);
+        unset($this->levels, $this->workerOptions, $this->wages);
         $this->formKey = (string) Str::uuid();
         $this->showForm = true;
     }
@@ -83,6 +92,60 @@ class EntryForms extends Component
     {
         // A field the person has just changed no longer shows its old error.
         $this->resetErrorBag($property);
+    }
+
+    /**
+     * Active workers paid for this kind of work (piece-rate categories doing it).
+     *
+     * @return array<int, string>
+     */
+    #[Computed]
+    public function workerOptions(): array
+    {
+        $activity = ($kind = ProductionEntryKind::tryFrom($this->kind)) !== null ? LabourActivity::forEntryKind($kind) : null;
+        if ($activity === null) {
+            return [];
+        }
+
+        return Worker::query()
+            ->where('is_active', true)
+            ->whereHas('category', fn ($q) => $q->where('basis', PayBasis::PerThousand->value)->where('activity', $activity->value))
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn (Worker $worker) => [$worker->id => $worker->displayName()])
+            ->all();
+    }
+
+    /**
+     * The chosen worker's rate on the entry date and what the bricks entered will earn.
+     *
+     * @return array{rate: Money, amount: Money|null}|null
+     */
+    #[Computed]
+    public function wages(): ?array
+    {
+        $workerId = (string) ($this->form['worker_id'] ?? '');
+        $date = (string) ($this->form['entry_date'] ?? '');
+        if (! ctype_digit($workerId) || ! isset($this->workerOptions[(int) $workerId]) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return null;
+        }
+
+        $worker = Worker::query()->find((int) $workerId);
+        $rate = $worker !== null ? app(WorkerLedger::class)->rateFor($worker, Carbon::parse($date)->startOfDay()) : null;
+        if ($rate === null) {
+            return null;
+        }
+
+        $bricks = match (ProductionEntryKind::tryFrom($this->kind)) {
+            ProductionEntryKind::Pathai => RecordPathai::preview((string) ($this->form['made'] ?? ''), (string) ($this->form['rejected'] ?? '')),
+            ProductionEntryKind::Nakaasi => $this->nakaasiTotal(),
+            default => $this->bricksIn((string) ($this->form['quantity'] ?? '')),
+        };
+
+        return [
+            'rate' => $rate->rate,
+            'amount' => $bricks !== null && $bricks->isPositive() ? $rate->rate->timesQuantity($bricks->toDecimal(), 1000) : null,
+        ];
     }
 
     /**
@@ -194,6 +257,15 @@ class EntryForms extends Component
         $this->showForm = false;
         $this->toast(__(':number recorded.', ['number' => $entry->number]));
         $this->dispatch('production-recorded');
+    }
+
+    private function bricksIn(string $value): ?Quantity
+    {
+        try {
+            return Quantity::fromInput($value, 0);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     public function render(): View

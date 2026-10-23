@@ -15,5 +15,6 @@
 | [modules/M4-payments-and-expenses.md](modules/M4-payments-and-expenses.md) | M4 report: payment and receipt vouchers, expenses by category, reversals, payments/receipts and expense reports |
 | [modules/M5-materials.md](modules/M5-materials.md) | M5 report: materials, purchases with extra charges, usage, stock at average cost, stock card, material cost report |
 | [modules/M6-production.md](modules/M6-production.md) | M6 report: Pathai, loading, firing with fuel, Nakaasi by grade, brick stock by stage and grade, daily production view |
+| [modules/M7-labour.md](modules/M7-labour.md) | M7 report: workers and categories, rate cards with dates, wages from production, attendance and salaries, advances and deductions, settlements with payslips, labour cost |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

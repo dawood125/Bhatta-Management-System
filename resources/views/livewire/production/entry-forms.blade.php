@@ -6,13 +6,16 @@
             <form id="production-form" wire:submit="save" class="space-y-4">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-ui.field :label="__('Date')" for="production-date" error="form.entry_date" required>
-                        <x-ui.input id="production-date" type="date" wire:model="form.entry_date" dir="ltr" max="{{ now()->format('Y-m-d') }}" />
+                        <x-ui.input id="production-date" type="date" wire:model.live="form.entry_date" dir="ltr" max="{{ now()->format('Y-m-d') }}" />
                     </x-ui.field>
 
-                    @if ($type === ProductionEntryKind::Pathai)
-                        <x-ui.field :label="__('Team or worker')" for="production-team" error="form.team" :hint="__('Optional. Workers are linked to entries with labour (M7).')">
-                            <x-ui.input id="production-team" wire:model="form.team" />
+                    @if (in_array($type, [ProductionEntryKind::Pathai, ProductionEntryKind::Loading, ProductionEntryKind::Nakaasi], true))
+                        <x-ui.field :label="__('Worker paid')" for="production-worker" error="form.worker_id" :hint="$this->workerOptions === [] ? __('No worker is paid for this work yet. Add one in Labour.') : __('Optional. Earns these bricks at the rate card.')">
+                            <x-ui.select id="production-worker" wire:model.live="form.worker_id" :placeholder="__('No worker')" :options="$this->workerOptions" :disabled="$this->workerOptions === []" />
                         </x-ui.field>
+                    @endif
+
+                    @if ($type === ProductionEntryKind::Pathai)
                         <x-ui.field :label="__('Bricks made')" for="production-made" error="form.made" required>
                             <x-ui.input id="production-made" wire:model.live.debounce.400ms="form.made" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
                         </x-ui.field>
@@ -24,9 +27,12 @@
                             <span class="text-stone-600">{{ __('Accepted, into ":stage"', ['stage' => $stageName(StageKind::Raw)]) }}:</span>
                             <span class="tabular font-semibold text-stone-900" dir="ltr">{{ $accepted?->format(0) ?? '—' }}</span>
                         </div>
+                        <x-ui.field :label="__('Team or family')" for="production-team" error="form.team" :hint="__('Optional')">
+                            <x-ui.input id="production-team" wire:model="form.team" />
+                        </x-ui.field>
                     @elseif ($type === ProductionEntryKind::Loading)
                         <x-ui.field :label="__('Bricks loaded into the kiln')" for="production-quantity" error="form.quantity" required>
-                            <x-ui.input id="production-quantity" wire:model="form.quantity" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
+                            <x-ui.input id="production-quantity" wire:model.live.debounce.400ms="form.quantity" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
                             <p class="text-xs text-stone-500">{{ __('Available in ":stage"', ['stage' => $stageName(StageKind::Raw)]) }}: <span class="tabular font-medium text-stone-700" dir="ltr">{{ $this->levels['raw']->format(0) }}</span></p>
                         </x-ui.field>
                     @elseif ($type === ProductionEntryKind::Firing)
@@ -139,6 +145,19 @@
                                 <span class="ms-2 text-red-600">{{ __('More than are awaiting Nakaasi.') }}</span>
                             @endif
                         </div>
+                    </div>
+                @endif
+
+                @if (ctype_digit((string) ($form['worker_id'] ?? '')))
+                    <div class="rounded-[var(--radius-control)] bg-brand-50 px-3 py-2 text-sm ring-1 ring-brand-200" aria-live="polite">
+                        @if ($this->wages)
+                            <span class="text-stone-700">{{ __('Rate') }} <x-ui.money :amount="$this->wages['rate']" class="font-medium" /> {{ __('per 1,000 bricks') }}</span>
+                            @if ($this->wages['amount'])
+                                · <span class="font-semibold text-stone-900">{{ __('Wages') }} <x-ui.money :amount="$this->wages['amount']" /></span>
+                            @endif
+                        @else
+                            <span class="text-amber-800">{{ __('No rate on that day. Set one in Categories and rates first.') }}</span>
+                        @endif
                     </div>
                 @endif
 

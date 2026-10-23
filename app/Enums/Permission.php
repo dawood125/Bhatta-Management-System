@@ -29,6 +29,11 @@ enum Permission: string
     case ProductionView = 'production.view';
     case ProductionRecord = 'production.record';
     case ProductionAdjust = 'production.adjust';
+    case LabourView = 'labour.view';
+    case LabourRecord = 'labour.record';
+    case LabourPay = 'labour.pay';
+    case LabourWorkers = 'labour.workers';
+    case LabourRates = 'labour.rates';
 
     public function label(): string
     {
@@ -54,6 +59,11 @@ enum Permission: string
             self::ProductionView => __('View production and brick stock'),
             self::ProductionRecord => __('Record daily production'),
             self::ProductionAdjust => __('Correct production: adjust brick stock and reverse entries'),
+            self::LabourView => __('View workers and their accounts'),
+            self::LabourRecord => __('Record work, attendance, deductions and salaries'),
+            self::LabourPay => __('Give advances and settle wages'),
+            self::LabourWorkers => __('Add and edit workers'),
+            self::LabourRates => __('Set labour categories and rates'),
         };
     }
 }

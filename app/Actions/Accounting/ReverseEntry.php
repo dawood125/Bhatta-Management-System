@@ -9,6 +9,7 @@ use App\Enums\Permission;
 use App\Models\JournalEntry;
 use App\Models\TreasuryAccount;
 use App\Models\User;
+use App\Models\WorkEntry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +38,12 @@ class ReverseEntry
 
         if (! $entry->type->isUserReversible()) {
             throw ValidationException::withMessages(['reason' => __('This kind of entry cannot be reversed here.')]);
+        }
+
+        // Wages earned with a production entry go with that entry.
+        $production = WorkEntry::query()->where('journal_entry_id', $entry->id)->whereNotNull('production_entry_id')->with('productionEntry')->first();
+        if ($production !== null) {
+            throw ValidationException::withMessages(['reason' => __('These wages were earned with production entry :number. Reverse that entry instead.', ['number' => $production->productionEntry?->number])]);
         }
 
         return DB::transaction(function () use ($actor, $entry, $data, $idempotencyKey): JournalEntry {

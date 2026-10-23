@@ -139,7 +139,7 @@ class BrickStock
 
         $entries = ProductionEntry::query()
             ->where('entry_date', $date->format('Y-m-d'))
-            ->with(['movements.product.unit', 'creator', 'reverser', 'materialUsage.movements.material.unit'])
+            ->with(['movements.product.unit', 'creator', 'reverser', 'materialUsage.movements.material.unit', 'worker', 'workEntry'])
             ->orderBy('id')
             ->get();
 

@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Enums\LabourActivity;
 use App\Enums\PartyRole;
+use App\Enums\PayBasis;
 use App\Enums\ProductKind;
 use App\Enums\Role;
 use App\Enums\TreasuryKind;
@@ -11,12 +13,14 @@ use App\Models\Area;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseSubCategory;
 use App\Models\Kiln;
+use App\Models\LabourCategory;
 use App\Models\Party;
 use App\Models\Product;
 use App\Models\ProductionStage;
 use App\Models\TreasuryAccount;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\Worker;
 
 /**
  * Turns raw audit-log rows into readable, translated text for the activity screen.
@@ -34,6 +38,8 @@ class ActivityPresenter
             'password_reset' => __('Password reset'),
             'password_changed' => __('Changed own password'),
             'roles_changed' => __('Roles changed'),
+            'rate_set' => __('Rate set'),
+            'rate_removed' => __('Rate removed'),
             default => (string) $activity->description,
         };
     }
@@ -43,7 +49,8 @@ class ActivityPresenter
         return match ($activity->event ?? $activity->description) {
             'created' => 'success',
             'deleted' => 'danger',
-            'role_changed', 'roles_changed', 'password_reset' => 'warning',
+            'role_changed', 'roles_changed', 'password_reset', 'rate_removed' => 'warning',
+            'rate_set' => 'info',
             'logged_in', 'password_changed' => 'info',
             default => 'neutral',
         };
@@ -64,6 +71,8 @@ class ActivityPresenter
             $subject instanceof ExpenseSubCategory => __('Expense sub-category'),
             $subject instanceof Party => __('Party'),
             $subject instanceof TreasuryAccount => __('Account'),
+            $subject instanceof LabourCategory => __('Labour category'),
+            $subject instanceof Worker => __('Worker'),
             default => null,
         };
 
@@ -130,6 +139,12 @@ class ActivityPresenter
             'notes' => __('Note'),
             'account_number' => __('Account number'),
             'allow_negative' => __('Allow negative balance'),
+            'basis' => __('How paid'),
+            'activity' => __('Paid for'),
+            'labour_category_id' => __('Labour category'),
+            'joined_on' => __('Joined on'),
+            'rate' => __('Rate'),
+            'effective_from' => __('From date'),
             default => $field,
         };
     }
@@ -148,6 +163,9 @@ class ActivityPresenter
             'kind' => ProductKind::tryFrom((string) $value)?->label() ?? TreasuryKind::tryFrom((string) $value)?->label() ?? (string) $value,
             'roles' => collect(explode(', ', (string) $value))->map(fn (string $role) => PartyRole::tryFrom($role)?->label() ?? $role)->implode(', '),
             'allow_negative' => $value ? __('Yes') : __('No'),
+            'basis' => PayBasis::tryFrom((string) $value)?->label() ?? (string) $value,
+            'activity' => LabourActivity::tryFrom((string) $value)?->label() ?? (string) $value,
+            'labour_category_id' => LabourCategory::query()->find((int) $value)?->displayName() ?? '#'.$value,
             'locale' => $value === 'ur' ? 'اردو' : 'English',
             'logo_path' => __('Logo'),
             default => is_scalar($value) ? (string) $value : (string) json_encode($value, JSON_UNESCAPED_UNICODE),

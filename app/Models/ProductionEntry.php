@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string $number
  * @property Carbon $entry_date
  * @property string|null $team
+ * @property int|null $worker_id
  * @property Quantity|null $made
  * @property Quantity|null $rejected
  * @property Quantity $quantity
@@ -38,6 +40,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $reversal_reason
  * @property-read Collection<int, BrickMovement> $movements
  * @property-read MaterialUsage|null $materialUsage
+ * @property-read Worker|null $worker
+ * @property-read WorkEntry|null $workEntry
  * @property-read User|null $creator
  * @property-read User|null $reverser
  */
@@ -90,6 +94,24 @@ class ProductionEntry extends Model
     public function materialUsage(): BelongsTo
     {
         return $this->belongsTo(MaterialUsage::class);
+    }
+
+    /**
+     * @return BelongsTo<Worker, $this>
+     */
+    public function worker(): BelongsTo
+    {
+        return $this->belongsTo(Worker::class);
+    }
+
+    /**
+     * The wages the named worker earned with this entry.
+     *
+     * @return HasOne<WorkEntry, $this>
+     */
+    public function workEntry(): HasOne
+    {
+        return $this->hasOne(WorkEntry::class);
     }
 
     /**

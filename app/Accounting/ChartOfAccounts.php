@@ -5,6 +5,7 @@ namespace App\Accounting;
 use App\Enums\AccountType;
 use App\Enums\TreasuryKind;
 use App\Models\ExpenseCategory;
+use App\Models\LabourCategory;
 use App\Models\LedgerAccount;
 use App\Models\Material;
 
@@ -13,8 +14,9 @@ use App\Models\Material;
  * it is built (receivables, payables, sales, ...), so nothing unused is created early.
  *
  * Code ranges: 1xxx assets (1001-1099 cash/bank, 1100 receivables, 1200 material stock),
- * 2xxx liabilities (2001-2099 credit cards, 2100 payables), 3xxx equity, 5001-5499 expense
- * categories, 5501-5899 materials used, 5900 material shortages.
+ * 2xxx liabilities (2001-2099 credit cards, 2100 payables, 2200 wages payable), 3xxx equity,
+ * 4900 deductions from workers, 5001-5499 expense categories, 5501-5899 materials used,
+ * 5900 material shortages, 6001-6499 labour categories.
  */
 class ChartOfAccounts
 {
@@ -23,9 +25,11 @@ class ChartOfAccounts
         ['key' => LedgerAccount::RECEIVABLES, 'code' => '1100', 'name' => 'Accounts receivable', 'name_ur' => 'وصولی کے کھاتے (لینا)', 'type' => AccountType::Asset],
         ['key' => LedgerAccount::MATERIAL_STOCK, 'code' => '1200', 'name' => 'Material stock', 'name_ur' => 'میٹریل کا اسٹاک', 'type' => AccountType::Asset],
         ['key' => LedgerAccount::PAYABLES, 'code' => '2100', 'name' => 'Accounts payable', 'name_ur' => 'ادائیگی کے کھاتے (دینا)', 'type' => AccountType::Liability],
+        ['key' => LedgerAccount::WAGES_PAYABLE, 'code' => '2200', 'name' => 'Wages payable', 'name_ur' => 'واجب الادا مزدوری', 'type' => AccountType::Liability],
         ['key' => LedgerAccount::OWNER_CAPITAL, 'code' => '3000', 'name' => 'Owner capital', 'name_ur' => 'مالک کا سرمایہ', 'type' => AccountType::Equity],
         ['key' => LedgerAccount::OWNER_DRAWINGS, 'code' => '3100', 'name' => 'Owner withdrawals', 'name_ur' => 'مالک کی نکاسی', 'type' => AccountType::Equity],
         ['key' => LedgerAccount::OPENING_BALANCE_EQUITY, 'code' => '3900', 'name' => 'Opening balances', 'name_ur' => 'ابتدائی بیلنس', 'type' => AccountType::Equity],
+        ['key' => LedgerAccount::WORKER_DEDUCTIONS, 'code' => '4900', 'name' => 'Deductions from workers', 'name_ur' => 'مزدوروں سے کٹوتی', 'type' => AccountType::Income],
         ['key' => LedgerAccount::MATERIAL_SHORTAGES, 'code' => '5900', 'name' => 'Material shortages', 'name_ur' => 'میٹریل کی کمی', 'type' => AccountType::Expense],
     ];
 
@@ -92,6 +96,38 @@ class ChartOfAccounts
         $material->usage_account_id = $account->id;
 
         return $account;
+    }
+
+    /**
+     * The expense account of a labour category ("Pathai wages"), created with its first earnings.
+     * Must run inside a transaction: the category row is locked.
+     */
+    public function labourAccountFor(LabourCategory $category): LedgerAccount
+    {
+        /** @var LabourCategory $locked */
+        $locked = LabourCategory::query()->whereKey($category->id)->lockForUpdate()->firstOrFail();
+
+        if ($locked->ledger_account_id !== null) {
+            return LedgerAccount::query()->findOrFail($locked->ledger_account_id);
+        }
+
+        [$name, $nameUr] = self::labourAccountNames($locked);
+        $account = $this->createAccount([6001, 6499], AccountType::Expense, $name, $nameUr);
+        $locked->ledger_account_id = $account->id;
+        $locked->save();
+        $category->ledger_account_id = $account->id;
+
+        return $account;
+    }
+
+    /**
+     * Name of a labour category's expense account in English and Urdu (kept in step on rename).
+     *
+     * @return array{0: string, 1: string|null}
+     */
+    public static function labourAccountNames(LabourCategory $category): array
+    {
+        return [$category->name.' wages', $category->name_ur !== null ? $category->name_ur.' (مزدوری)' : null];
     }
 
     /**

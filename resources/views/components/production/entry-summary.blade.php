@@ -1,6 +1,7 @@
 {{--
-    What a production entry did, in one cell. Needs the entry with movements.product.unit and
-    materialUsage.movements.material.unit loaded, and the kiln's stages keyed by kind.
+    What a production entry did, in one cell. Needs the entry with movements.product.unit,
+    materialUsage.movements.material.unit, worker and workEntry loaded, and the kiln's stages
+    keyed by kind.
 --}}
 @props(['entry', 'stages', 'duplicate' => false])
 
@@ -61,6 +62,19 @@
             @endif
     @endswitch
 
+    @if ($entry->worker)
+        <p class="text-xs text-stone-600">
+            {{ __('Worker') }}:
+            @can(\App\Enums\Permission::LabourView->value)
+                <a href="{{ route('labour.workers.show', $entry->worker) }}" wire:navigate class="font-medium text-brand-700 hover:underline">{{ $entry->worker->displayName() }}</a>
+            @else
+                <span class="font-medium">{{ $entry->worker->displayName() }}</span>
+            @endcan
+            @if ($entry->workEntry)
+                · {{ __('Wages') }} <x-ui.money :amount="$entry->workEntry->amount" class="font-medium" />
+            @endif
+        </p>
+    @endif
     @if (filled($entry->notes))
         <p class="text-xs text-stone-500"><bdi>{{ $entry->notes }}</bdi></p>
     @endif

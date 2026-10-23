@@ -46,12 +46,14 @@ class RecordLoading
 
         $quantity = $this->bricks($data['quantity'], 'quantity');
         $date = Carbon::createFromFormat('Y-m-d', $data['entry_date'])->startOfDay();
+        $worker = $this->workerFrom($input['worker_id'] ?? null);
 
-        return $this->posting($idempotencyKey, ProductionEntryKind::Loading, function () use ($actor, $data, $date, $quantity, $idempotencyKey): ProductionEntry {
+        return $this->posting($idempotencyKey, ProductionEntryKind::Loading, function () use ($actor, $data, $date, $quantity, $worker, $idempotencyKey): ProductionEntry {
             $this->assertStageAllows(StageKind::Raw, null, $date, Quantity::zero()->subtract($quantity), 'quantity');
 
-            $entry = $this->createEntry(ProductionEntryKind::Loading, $date, ['quantity' => $quantity, 'notes' => $data['notes']], $idempotencyKey, $actor);
+            $entry = $this->createEntry(ProductionEntryKind::Loading, $date, ['quantity' => $quantity, 'notes' => $data['notes'], 'worker_id' => $worker?->id], $idempotencyKey, $actor);
             $this->move($entry, StageKind::Raw, StageKind::InFiring, null, $quantity, $actor);
+            $this->payWorker($entry, $worker, $quantity, $actor);
 
             return $entry;
         });

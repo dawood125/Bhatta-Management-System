@@ -58,10 +58,12 @@ class RecordPathai
 
         $accepted = $made->subtract($rejected);
         $date = Carbon::createFromFormat('Y-m-d', $data['entry_date'])->startOfDay();
+        $worker = $this->workerFrom($input['worker_id'] ?? null);
 
-        return $this->posting($idempotencyKey, ProductionEntryKind::Pathai, function () use ($actor, $data, $date, $made, $rejected, $accepted, $idempotencyKey): ProductionEntry {
+        return $this->posting($idempotencyKey, ProductionEntryKind::Pathai, function () use ($actor, $data, $date, $made, $rejected, $accepted, $worker, $idempotencyKey): ProductionEntry {
             $entry = $this->createEntry(ProductionEntryKind::Pathai, $date, [
                 'team' => $data['team'],
+                'worker_id' => $worker?->id,
                 'made' => $made,
                 'rejected' => $rejected,
                 'quantity' => $accepted,
@@ -71,6 +73,9 @@ class RecordPathai
             if ($accepted->isPositive()) {
                 $this->move($entry, null, StageKind::Raw, null, $accepted, $actor);
             }
+
+            // Only accepted bricks are paid (rejected ones are not).
+            $this->payWorker($entry, $worker, $accepted, $actor);
 
             return $entry;
         });

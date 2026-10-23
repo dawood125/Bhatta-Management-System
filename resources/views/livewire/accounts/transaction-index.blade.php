@@ -56,6 +56,9 @@
                                             @if ($line->party)
                                                 <span class="text-stone-500">· <bdi>{{ $line->party->displayName() }}</bdi></span>
                                             @endif
+                                            @if ($line->worker)
+                                                <span class="text-stone-500">· <bdi>{{ $line->worker->displayName() }}</bdi></span>
+                                            @endif
                                             @if (filled($line->memo))
                                                 <span class="block text-stone-400"><bdi>{{ $line->memo }}</bdi></span>
                                             @endif

@@ -43,6 +43,16 @@ class LedgerAccount extends Model
 
     public const MATERIAL_SHORTAGES = 'material_shortages';
 
+    public const WAGES_PAYABLE = 'wages_payable';
+
+    public const WORKER_DEDUCTIONS = 'worker_deductions';
+
+    /** Lines on this account must name a worker (each worker's wages account). */
+    public function requiresWorker(): bool
+    {
+        return $this->system_key === self::WAGES_PAYABLE;
+    }
+
     /** Accounts whose lines must name a party (customer/supplier sub-ledgers). */
     public const PARTY_ACCOUNTS = [self::RECEIVABLES, self::PAYABLES];
 

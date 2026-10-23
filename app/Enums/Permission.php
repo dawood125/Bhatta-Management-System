@@ -19,6 +19,8 @@ enum Permission: string
     case TransactionsReverse = 'transactions.reverse';
     case CapitalRecord = 'capital.record';
     case FinancialReportsView = 'reports.financial';
+    case PartiesView = 'parties.view';
+    case PartiesManage = 'parties.manage';
 
     public function label(): string
     {
@@ -34,6 +36,8 @@ enum Permission: string
             self::TransactionsReverse => __('Reverse transactions'),
             self::CapitalRecord => __('Record owner capital and withdrawals'),
             self::FinancialReportsView => __('View financial reports'),
+            self::PartiesView => __('View parties and statements'),
+            self::PartiesManage => __('Manage parties'),
         };
     }
 }

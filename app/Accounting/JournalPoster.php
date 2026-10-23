@@ -71,10 +71,11 @@ class JournalPoster
             }
 
             $lines = [];
-            foreach ($original->lines()->with('account')->get() as $line) {
-                $lines[] = $line->debit->isPositive()
+            foreach ($original->lines()->with(['account', 'party'])->get() as $line) {
+                $mirror = $line->debit->isPositive()
                     ? PendingLine::credit($line->account, $line->debit, $line->memo)
                     : PendingLine::debit($line->account, $line->credit, $line->memo);
+                $lines[] = $mirror->forParty($line->party);
             }
 
             $reversal = $this->write(JournalType::Reversal, $date, $lines, $idempotencyKey, $by, $reason, $original);
@@ -131,6 +132,7 @@ class JournalPoster
                     JournalLine::query()->create([
                         'journal_entry_id' => $entry->id,
                         'ledger_account_id' => $line->account->id,
+                        'party_id' => $line->party?->id,
                         'line_no' => $index + 1,
                         'debit' => $line->debit,
                         'credit' => $line->credit,
@@ -166,6 +168,19 @@ class JournalPoster
         foreach ($lines as $line) {
             if (! $line->account->exists || $line->account->kiln_id !== $kilnId) {
                 throw new LedgerIntegrityException('Every line must use an account of the current kiln.');
+            }
+
+            // Receivable/payable lines always name the party; other accounts never do.
+            if ($line->account->requiresParty() && $line->party === null) {
+                throw new LedgerIntegrityException("Lines on {$line->account->name} must name a party.");
+            }
+
+            if (! $line->account->requiresParty() && $line->party !== null) {
+                throw new LedgerIntegrityException("Lines on {$line->account->name} cannot name a party.");
+            }
+
+            if ($line->party !== null && (! $line->party->exists || $line->party->kiln_id !== $kilnId)) {
+                throw new LedgerIntegrityException('The party must belong to the current kiln.');
             }
 
             $isDebit = $line->debit->isPositive() && $line->credit->isZero();

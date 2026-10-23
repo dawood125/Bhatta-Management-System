@@ -20,7 +20,7 @@
 
     {{-- Sidebar --}}
     <aside
-        class="fixed inset-y-0 start-0 z-50 flex w-64 -translate-x-full flex-col bg-sidebar text-stone-300 transition-transform duration-200 ease-out rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
+        class="fixed inset-y-0 start-0 z-50 flex w-64 -translate-x-full flex-col bg-sidebar text-stone-300 transition-transform duration-200 ease-out rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0 print:hidden"
         :class="sidebarOpen && 'translate-x-0! rtl:translate-x-0!'"
         aria-label="{{ __('Main navigation') }}"
     >
@@ -76,8 +76,8 @@
     </aside>
 
     {{-- Main column --}}
-    <div class="lg:ps-64">
-        <header class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-stone-200/80 bg-canvas/85 px-4 backdrop-blur sm:px-6 lg:px-8">
+    <div class="lg:ps-64 print:ps-0">
+        <header class="sticky top-0 z-30 flex h-16 print:hidden items-center gap-3 border-b border-stone-200/80 bg-canvas/85 px-4 backdrop-blur sm:px-6 lg:px-8">
             <button type="button" x-on:click="sidebarOpen = true" class="-ms-1.5 rounded-md p-1.5 text-stone-600 hover:bg-stone-200/60 lg:hidden" aria-label="{{ __('Open menu') }}">
                 <x-lucide-menu class="size-5" aria-hidden="true" />
             </button>
@@ -120,7 +120,7 @@
             </div>
         </header>
 
-        <main id="main" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main id="main" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:max-w-none print:p-0">
             {{ $slot }}
         </main>
     </div>

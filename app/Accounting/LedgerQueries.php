@@ -4,6 +4,7 @@ namespace App\Accounting;
 
 use App\Models\JournalLine;
 use App\Models\LedgerAccount;
+use App\Models\Party;
 use App\Support\Kiln\CurrentKiln;
 use App\Support\Money;
 use Carbon\CarbonInterface;
@@ -136,6 +137,103 @@ class LedgerQueries
         }
 
         return ['opening' => $opening, 'rows' => $rows, 'closing' => $running, 'total_in' => $totalIn, 'total_out' => $totalOut];
+    }
+
+    /**
+     * Net balance per party across receivables and payables: positive means they owe us,
+     * negative means we owe them.
+     *
+     * @param  list<int>  $partyIds
+     * @return array<int, Money>
+     */
+    public function partyBalances(array $partyIds, ?CarbonInterface $asOf = null): array
+    {
+        $result = [];
+        foreach ($partyIds as $id) {
+            $result[$id] = Money::zero();
+        }
+
+        if ($partyIds === []) {
+            return $result;
+        }
+
+        $rows = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('journal_lines.kiln_id', $this->currentKiln->id())
+            ->whereIn('journal_lines.party_id', $partyIds)
+            ->when($asOf, fn ($q) => $q->where('journal_entries.entry_date', '<=', $asOf->format('Y-m-d')))
+            ->groupBy('journal_lines.party_id')
+            ->select('journal_lines.party_id')
+            ->selectRaw('SUM(journal_lines.debit) - SUM(journal_lines.credit) AS net')
+            ->get();
+
+        foreach ($rows as $row) {
+            $result[(int) $row->party_id] = Money::fromPaisa((int) $row->net);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Totals across all parties: what others owe us (receivable) and what we owe others
+     * (payable). Each party is netted first, so one party is never counted on both sides.
+     *
+     * @return array{receivable: Money, payable: Money}
+     */
+    public function partyTotals(): array
+    {
+        $perParty = DB::table('journal_lines')
+            ->where('kiln_id', $this->currentKiln->id())
+            ->whereNotNull('party_id')
+            ->groupBy('party_id')
+            ->selectRaw('SUM(debit) - SUM(credit) AS net');
+
+        $totals = DB::query()
+            ->fromSub($perParty, 'p')
+            ->selectRaw('COALESCE(SUM(CASE WHEN net > 0 THEN net ELSE 0 END), 0) AS receivable')
+            ->selectRaw('COALESCE(SUM(CASE WHEN net < 0 THEN -net ELSE 0 END), 0) AS payable')
+            ->first();
+
+        return [
+            'receivable' => Money::fromPaisa((int) ($totals->receivable ?? 0)),
+            'payable' => Money::fromPaisa((int) ($totals->payable ?? 0)),
+        ];
+    }
+
+    /**
+     * Statement of one party for a period. Debit = they owe us more (e.g. a sale);
+     * credit = they owe us less, or we owe them more (e.g. a payment received, a purchase).
+     *
+     * @return array{opening: Money, rows: list<array{line: JournalLine, debit: Money, credit: Money, balance: Money}>, closing: Money, total_debit: Money, total_credit: Money}
+     */
+    public function partyStatement(Party $party, CarbonInterface $from, CarbonInterface $to): array
+    {
+        $opening = $this->partyBalances([$party->id], $from->copy()->subDay())[$party->id];
+
+        $lines = JournalLine::query()
+            ->select('journal_lines.*')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('journal_lines.party_id', $party->id)
+            ->whereBetween('journal_entries.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
+            ->orderBy('journal_entries.entry_date')
+            ->orderBy('journal_entries.id')
+            ->orderBy('journal_lines.line_no')
+            ->with(['entry.lines.account', 'entry.lines.party', 'entry.creator'])
+            ->get();
+
+        $running = $opening;
+        $totalDebit = Money::zero();
+        $totalCredit = Money::zero();
+        $rows = [];
+
+        foreach ($lines as $line) {
+            $running = $running->add($line->debit)->subtract($line->credit);
+            $totalDebit = $totalDebit->add($line->debit);
+            $totalCredit = $totalCredit->add($line->credit);
+            $rows[] = ['line' => $line, 'debit' => $line->debit, 'credit' => $line->credit, 'balance' => $running];
+        }
+
+        return ['opening' => $opening, 'rows' => $rows, 'closing' => $running, 'total_debit' => $totalDebit, 'total_credit' => $totalCredit];
     }
 
     private function sumsQuery(?CarbonInterface $asOf): Builder

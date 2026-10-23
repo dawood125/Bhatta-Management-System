@@ -8,6 +8,8 @@ use App\Livewire\Accounts\TransactionIndex;
 use App\Livewire\Activity\ActivityIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\Dev\ComponentGallery;
+use App\Livewire\Parties\PartyIndex;
+use App\Livewire\Parties\PartyStatement;
 use App\Livewire\Profile\ProfileEdit;
 use App\Livewire\Reports\TrialBalance;
 use App\Livewire\Settings\AreaIndex;
@@ -27,6 +29,9 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
     Route::livewire('/users', UserIndex::class)->name('users.index');
     Route::livewire('/activity', ActivityIndex::class)->name('activity.index');
     Route::livewire('/profile', ProfileEdit::class)->name('profile.edit');
+
+    Route::livewire('/parties', PartyIndex::class)->name('parties.index');
+    Route::livewire('/parties/{party}', PartyStatement::class)->name('parties.show');
 
     Route::livewire('/accounts', AccountIndex::class)->name('accounts.index');
     Route::livewire('/accounts/{account}/book', CashBook::class)->name('accounts.book');

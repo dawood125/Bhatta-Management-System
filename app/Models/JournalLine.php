@@ -16,12 +16,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $kiln_id
  * @property int $journal_entry_id
  * @property int $ledger_account_id
+ * @property int|null $party_id
  * @property int $line_no
  * @property Money $debit
  * @property Money $credit
  * @property string|null $memo
  * @property-read JournalEntry $entry
  * @property-read LedgerAccount $account
+ * @property-read Party|null $party
  */
 class JournalLine extends Model
 {
@@ -63,5 +65,13 @@ class JournalLine extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(LedgerAccount::class, 'ledger_account_id');
+    }
+
+    /**
+     * @return BelongsTo<Party, $this>
+     */
+    public function party(): BelongsTo
+    {
+        return $this->belongsTo(Party::class);
     }
 }

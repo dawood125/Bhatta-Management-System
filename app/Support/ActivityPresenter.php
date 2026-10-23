@@ -2,15 +2,19 @@
 
 namespace App\Support;
 
+use App\Enums\PartyRole;
 use App\Enums\ProductKind;
 use App\Enums\Role;
+use App\Enums\TreasuryKind;
 use App\Models\Activity;
 use App\Models\Area;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseSubCategory;
 use App\Models\Kiln;
+use App\Models\Party;
 use App\Models\Product;
 use App\Models\ProductionStage;
+use App\Models\TreasuryAccount;
 use App\Models\Unit;
 use App\Models\User;
 
@@ -29,6 +33,7 @@ class ActivityPresenter
             'role_changed' => __('Role changed'),
             'password_reset' => __('Password reset'),
             'password_changed' => __('Changed own password'),
+            'roles_changed' => __('Roles changed'),
             default => (string) $activity->description,
         };
     }
@@ -38,7 +43,7 @@ class ActivityPresenter
         return match ($activity->event ?? $activity->description) {
             'created' => 'success',
             'deleted' => 'danger',
-            'role_changed', 'password_reset' => 'warning',
+            'role_changed', 'roles_changed', 'password_reset' => 'warning',
             'logged_in', 'password_changed' => 'info',
             default => 'neutral',
         };
@@ -57,6 +62,8 @@ class ActivityPresenter
             $subject instanceof Area => __('Area'),
             $subject instanceof ExpenseCategory => __('Expense category'),
             $subject instanceof ExpenseSubCategory => __('Expense sub-category'),
+            $subject instanceof Party => __('Party'),
+            $subject instanceof TreasuryAccount => __('Account'),
             default => null,
         };
 
@@ -115,6 +122,14 @@ class ActivityPresenter
             'symbol' => __('Symbol'),
             'decimals' => __('Decimal places'),
             'expense_category_id' => __('Expense category'),
+            'roles' => __('Roles'),
+            'phone_2' => __('Second phone'),
+            'area_id' => __('Area'),
+            'sales_agent_id' => __('Sales agent'),
+            'opening_date' => __('Opening date'),
+            'notes' => __('Note'),
+            'account_number' => __('Account number'),
+            'allow_negative' => __('Allow negative balance'),
             default => $field,
         };
     }
@@ -130,7 +145,9 @@ class ActivityPresenter
             'is_active' => $value ? __('Active') : ($isUser ? __('Deactivated') : __('Archived')),
             'is_saleable' => $value ? __('Yes') : __('No'),
             'role' => Role::tryFrom((string) $value)?->label() ?? (string) $value,
-            'kind' => ProductKind::tryFrom((string) $value)?->label() ?? (string) $value,
+            'kind' => ProductKind::tryFrom((string) $value)?->label() ?? TreasuryKind::tryFrom((string) $value)?->label() ?? (string) $value,
+            'roles' => collect(explode(', ', (string) $value))->map(fn (string $role) => PartyRole::tryFrom($role)?->label() ?? $role)->implode(', '),
+            'allow_negative' => $value ? __('Yes') : __('No'),
             'locale' => $value === 'ur' ? 'اردو' : 'English',
             'logo_path' => __('Logo'),
             default => is_scalar($value) ? (string) $value : (string) json_encode($value, JSON_UNESCAPED_UNICODE),

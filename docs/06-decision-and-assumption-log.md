@@ -69,7 +69,7 @@
 | D-063 | 2026-10-19 | No stage or grade can go below zero on any day, under a lock on the kiln's stages. Production entries are never edited or deleted: Owner or Manager reverse them with a reason (mirror movements dated today); refused once the bricks have moved on | Agent | Final |
 | D-064 | 2026-10-19 | Fuel recorded with a firing entry is a material usage (M5 average cost) inside the same transaction; it is reversed together with the firing entry, never on its own from the materials screens | Agent | Final |
 | D-065 | 2026-10-19 | The daily view flags possible duplicates (same kind, day and quantities, and the same team for Pathai) and lists stock adjustments; nothing is blocked, the owner checks | Agent | Final |
-| D-066 | 2026-10-19 | Permissions: `production.view` (all roles), `production.record` (Owner, Manager, Munshi, Data entry), `production.adjust` adjustments and reversals (Owner, Manager) | Agent | Final |
+| D-066 | 2026-10-19 | Permissions: `production.view` (all roles), `production.record` (Owner, Manager, Munshi, Data entry), `production.adjust` adjustments and reversals (Owner, Manager) | Agent | Final |
 | D-067 | 2026-10-20 | Each worker has an account inside "Wages payable" (2200): every journal line on that account names the worker, and no other account may. Earnings credit it; advances, deductions and payments debit it. The balance always comes from the journal. A "worker" can be one person, a family or a team under its head (proposed default for Q-20 and Q-26) | Agent | Final |
 | D-068 | 2026-10-20 | Labour categories have a pay basis (per 1,000 bricks, per day, per month, lump sum) and, for piece rates, the production work they are paid for. Defaults: Pathai, Kamyaar (loading), Nakaasi, Barai (salary), Mistri (firing team, contract), Daily labour. Local names are kept as spoken and stay provisional (Q-21, Q-23). No rates are seeded. The basis is fixed once wages exist. Each category gets its own labour expense account (6001–6499) with its first wages | Agent | Provisional until Q-21 and Q-23 are answered |
 | D-069 | 2026-10-20 | Rate cards with effective dates. A category rate applies to all its workers; a worker's own rate (e.g. a salary) overrides it. Work keeps the rate of its day, copied onto the work entry. A rate used for wages cannot be removed: add a newer one instead | Agent | Final |
@@ -80,6 +80,7 @@
 | D-074 | 2026-10-20 | A mistri contract is recorded as an agreed amount earned by the mistri (one worker) and paid through a settlement. The mistri's own team is not on the kiln's payroll, so the amount is counted once in labour cost, never twice (Q-22: the period stays free, per firing or per month) | Agent | Final |
 | D-075 | 2026-10-20 | Permissions: `labour.view` (Owner, Manager, Munshi, Viewer), `labour.record` work, attendance, deductions and salaries, `labour.pay` advances and settlements, `labour.workers` (Owner, Manager, Munshi), `labour.rates` categories and rates (Owner, Manager). Data entry users may name the worker on production entries (wages follow automatically) but have no labour screens. Reversals need `transactions.reverse` | Agent | Final |
 | D-076 | 2026-10-20 | Payslips are printed from the settlement page (one per worker, or "Save as PDF" in the browser). A generated PDF file comes with the PDF engine of M8 (invoices) | Agent | Final unless a PDF file is needed earlier |
+| D-077 | 2026-10-23 | Development moved from the Windows PC (damaged) to Ubuntu 24.04. The local database is now **MariaDB 10.11**, the same as production, instead of MySQL 8.4; the app connects through the local socket. M0–M7 migrations and tests ran on it unchanged. The code is also kept on GitHub (module branches merged into `main` by the owner) | User | Final |
 
 ## Assumptions (to be confirmed)
 
@@ -98,6 +99,7 @@
 
 ## Environment notes
 
-- Local tools: PHP 8.3.30 (Laragon), Composer 2.9.5, MySQL 8.4.3 (Laragon), Node 26, npm 11, Python 3.13, git 2.50.
-- PHP `zip` and `sockets` extensions were enabled in Laragon's `php.ini` during M0 (needed by Composer/backups and the Pest browser plugin).
+- Local tools since 2026-10-23 (D-077): Ubuntu 24.04, PHP 8.3.6 (with GD, needed only by the tests' fake images), Composer 2.7.1, MariaDB 10.11.14 (the app connects through the local socket as the Linux user, no password), Node 20.19, npm 10.8, git 2.43.
+- Until 2026-10-19 (M0–M7 on Windows): PHP 8.3.30 (Laragon), Composer 2.9.5, MySQL 8.4.3 (Laragon), Node 26, npm 11, Python 3.13, git 2.50. PHP `zip` and `sockets` were enabled in Laragon's `php.ini` during M0.
+- `concurrently` (used only by `composer dev`) asks for Node 22+; building the assets works on Node 20.
 - The reference dump was loaded into a local scratch database **`ref_gbricks`** for analysis only. It can be dropped at any time.

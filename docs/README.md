@@ -16,5 +16,10 @@
 | [modules/M5-materials.md](modules/M5-materials.md) | M5 report: materials, purchases with extra charges, usage, stock at average cost, stock card, material cost report |
 | [modules/M6-production.md](modules/M6-production.md) | M6 report: Pathai, loading, firing with fuel, Nakaasi by grade, brick stock by stage and grade, daily production view |
 | [modules/M7-labour.md](modules/M7-labour.md) | M7 report: workers and categories, rate cards with dates, wages from production, attendance and salaries, advances and deductions, settlements with payslips, labour cost |
+| [modules/M8-sales.md](modules/M8-sales.md) | M8 report: sales with stock reservation, deliveries with carriage, payments per sale, credit notes and write-offs, invoice PDF in English and Urdu, invoice emails with retries, drivers due, statement PDF |
+| [modules/M9-reports.md](modules/M9-reports.md) | M9 report: dashboard, reports page, profit and loss, balance sheet, day close with lock, sales and production summaries, cost per 1,000 bricks, who owes us |
+| [07-deployment.md](07-deployment.md) | Putting the system on a server: hosting, install, HTTPS, worker and scheduler, Google Drive copies, updating, restoring backups |
+| [08-uat.md](08-uat.md) | User acceptance testing: the partner's test script, the owner review, reporting problems |
+| [modules/M11-hardening.md](modules/M11-hardening.md) | M11 report: permissions review, security, backups with Google Drive copies and restore drill, email settings in the app, speed with years of data, setup check, deployment and UAT |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

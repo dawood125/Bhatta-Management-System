@@ -7,7 +7,7 @@ Status: **proposal, awaiting approval.** Items marked *(needs answer)* depend on
 | Layer | Choice | Why |
 |---|---|---|
 | Language / framework | **PHP 8.3 + Laravel 13.x** (current stable) | You chose Laravel; the reference is Laravel; PHP 8.3 is already installed (Laragon) |
-| Database | **MySQL 8.4 locally; MariaDB 10.11 in production** (same as the live reference server) *(Q-07)* | Only features that work on both. Strict SQL mode, InnoDB, utf8mb4 |
+| Database | **MariaDB 10.11, locally and in production** (same as the live reference server) *(Q-07)*. M0–M7 were first built on MySQL 8.4 *(D-077)* | Only features that work on both MariaDB and MySQL. Strict SQL mode, InnoDB, utf8mb4 |
 | UI | **Blade + Livewire 4 + Alpine.js + Tailwind CSS 4** (built with Vite) | Stays inside Laravel/Blade like the reference, but every action is validated and authorised on the server. Live totals in forms without a separate SPA/API. Fast to build and easy to maintain |
 | Icons | One set only: **Lucide** (Blade components) | Clean, consistent and complete |
 | Charts | ApexCharts (also used by the reference) | Only charts that answer an operational question |

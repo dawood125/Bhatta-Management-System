@@ -2,6 +2,8 @@
 
 namespace App\Accounting;
 
+use App\Support\Money;
+use App\Support\Quantity;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -53,6 +55,15 @@ class LedgerVerifier
             ->pluck('l.id');
         foreach ($crossKiln as $id) {
             $problems[] = "Line #{$id}: kiln does not match its entry or account.";
+        }
+
+        // 3b. Each line carries its entry's date (balances on a date are read from the lines).
+        $wrongDate = DB::table('journal_lines as l')
+            ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+            ->whereColumn('l.entry_date', '!=', 'e.entry_date')
+            ->pluck('l.id');
+        foreach ($wrongDate as $id) {
+            $problems[] = "Line #{$id}: its date does not match its entry's date.";
         }
 
         // 4. Reversal links are consistent in both directions.
@@ -166,7 +177,7 @@ class LedgerVerifier
             }
         }
 
-        return [...$problems, ...$this->verifyMaterials(), ...$this->verifyProduction(), ...$this->verifyLabour()];
+        return [...$problems, ...$this->verifyMaterials(), ...$this->verifyProduction(), ...$this->verifyLabour(), ...$this->verifySales()];
     }
 
     /**
@@ -223,6 +234,116 @@ class LedgerVerifier
             if ((int) $s->lines_paid !== (int) $s->total_paid || $entryTotal !== (int) $s->total_paid || (int) $s->bad_lines > 0) {
                 $problems[] = "Settlement {$s->number}: its lines, total and payment entry do not add up.";
             }
+        }
+
+        return $problems;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function verifySales(): array
+    {
+        $problems = [];
+
+        // 19. Each sale matches its invoice entry: same kiln, date and number, the customer owes
+        //     the sale total, and the total is the sum of its lines.
+        $sales = DB::table('sales as s')
+            ->leftJoin('journal_entries as e', 'e.id', '=', 's.journal_entry_id')
+            ->select('s.number', 's.kiln_id', 's.sale_date', 's.total', 's.customer_id', 'e.type', 'e.kiln_id as entry_kiln', 'e.entry_date', 'e.number as entry_number', 'e.total as entry_total')
+            ->selectRaw('(SELECT COALESCE(SUM(amount), 0) FROM sale_lines WHERE sale_id = s.id) AS lines_total')
+            ->selectRaw('(SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE journal_entry_id = s.journal_entry_id AND party_id = s.customer_id) AS customer_debit')
+            ->get();
+        foreach ($sales as $sale) {
+            if ($sale->type !== 'sale' || (int) $sale->entry_kiln !== (int) $sale->kiln_id || $sale->entry_number !== $sale->number
+                || substr((string) $sale->entry_date, 0, 10) !== substr((string) $sale->sale_date, 0, 10)
+                || (int) $sale->entry_total !== (int) $sale->total || (int) $sale->lines_total !== (int) $sale->total || (int) $sale->customer_debit !== (int) $sale->total) {
+                $problems[] = "Sale {$sale->number}: it does not match its invoice entry or its lines.";
+            }
+        }
+
+        // 20. Each line's amount is rate × quantity ÷ basis (rounded half up), less its discount.
+        foreach (DB::table('sale_lines as l')->join('sales as s', 's.id', '=', 'l.sale_id')->select('s.number', 'l.line_no', 'l.quantity', 'l.rate', 'l.rate_per', 'l.discount', 'l.amount')->get() as $line) {
+            $gross = Money::fromPaisa((int) $line->rate)->timesQuantity(Quantity::fromMilli((int) $line->quantity)->toDecimal(), max(1, (int) $line->rate_per));
+            if ((int) $line->discount > $gross->paisa || $gross->paisa - (int) $line->discount !== (int) $line->amount) {
+                $problems[] = "Sale {$line->number}, line {$line->line_no}: the amount is not rate × quantity less the discount.";
+            }
+        }
+
+        // 21. Each delivery took its lines out of stock (one movement per line, same quantities),
+        //     a reversed delivery put every one of them back, and its carriage entry matches.
+        $dispatches = DB::table('sale_dispatches as d')
+            ->join('sales as s', 's.id', '=', 'd.sale_id')
+            ->leftJoin('journal_entries as e', 'e.id', '=', 'd.carriage_entry_id')
+            ->select('d.number', 'd.reversed_at', 'd.carriage', 'd.carriage_entry_id', 'd.driver_id', 's.customer_id', 'e.type as entry_type', 'e.total as entry_total', 'e.status as entry_status')
+            ->selectRaw('(SELECT COUNT(*) FROM sale_dispatch_lines WHERE sale_dispatch_id = d.id) AS line_count')
+            ->selectRaw('(SELECT COALESCE(SUM(quantity), 0) FROM sale_dispatch_lines WHERE sale_dispatch_id = d.id) AS line_quantity')
+            ->selectRaw('(SELECT COUNT(*) FROM brick_movements WHERE sale_dispatch_id = d.id AND reversal_of_id IS NULL AND stage_to IS NULL) AS own')
+            ->selectRaw('(SELECT COALESCE(SUM(quantity), 0) FROM brick_movements WHERE sale_dispatch_id = d.id AND reversal_of_id IS NULL) AS own_quantity')
+            ->selectRaw('(SELECT COUNT(*) FROM brick_movements WHERE sale_dispatch_id = d.id AND reversal_of_id IS NOT NULL) AS mirrors')
+            ->selectRaw('(SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE journal_entry_id = d.carriage_entry_id AND party_id = s.customer_id) AS customer_debit')
+            ->get();
+        foreach ($dispatches as $d) {
+            if ((int) $d->own !== (int) $d->line_count || (int) $d->own_quantity !== (int) $d->line_quantity) {
+                $problems[] = "Delivery {$d->number}: its stock movements do not match its lines.";
+            }
+
+            if ((int) $d->mirrors !== ($d->reversed_at !== null ? (int) $d->own : 0)) {
+                $problems[] = "Delivery {$d->number}: its reversal movements are incomplete.";
+            }
+
+            $carriageOk = $d->carriage_entry_id === null
+                ? (int) $d->carriage === 0
+                : $d->entry_type === 'carriage' && $d->driver_id !== null && (int) $d->entry_total === (int) $d->carriage && (int) $d->customer_debit === (int) $d->carriage
+                    && ($d->reversed_at === null) === ($d->entry_status === 'posted');
+            if (! $carriageOk) {
+                $problems[] = "Delivery {$d->number}: its carriage does not match its entry.";
+            }
+        }
+
+        // 22. No sale line was delivered more than was ordered.
+        $over = DB::table('sale_lines as l')
+            ->join('sales as s', 's.id', '=', 'l.sale_id')
+            ->select('s.number', 'l.line_no', 'l.quantity')
+            ->selectRaw('(SELECT COALESCE(SUM(dl.quantity), 0) FROM sale_dispatch_lines dl JOIN sale_dispatches d ON d.id = dl.sale_dispatch_id WHERE dl.sale_line_id = l.id AND d.reversed_at IS NULL) AS delivered')
+            ->get()
+            ->filter(fn ($line) => (int) $line->delivered > (int) $line->quantity);
+        foreach ($over as $line) {
+            $problems[] = "Sale {$line->number}, line {$line->line_no}: more was delivered than ordered.";
+        }
+
+        // 23. A cancelled sale has its invoice reversed and no delivery left; a closed sale's credit
+        //     note is a credit note for that customer.
+        $states = DB::table('sales as s')
+            ->join('journal_entries as e', 'e.id', '=', 's.journal_entry_id')
+            ->leftJoin('journal_entries as c', 'c.id', '=', 's.credit_entry_id')
+            ->select('s.number', 's.status', 's.cancelled_at', 's.closed_at', 's.credit_entry_id', 'e.status as entry_status', 'c.type as credit_type')
+            ->selectRaw('(SELECT COUNT(*) FROM sale_dispatches WHERE sale_id = s.id AND reversed_at IS NULL) AS live_dispatches')
+            ->selectRaw('(SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE journal_entry_id = s.credit_entry_id AND party_id = s.customer_id) AS credit_to_customer')
+            ->selectRaw('(SELECT total FROM journal_entries WHERE id = s.credit_entry_id) AS credit_total')
+            ->get();
+        foreach ($states as $state) {
+            $cancelled = $state->status === 'cancelled';
+            if ($cancelled !== ($state->cancelled_at !== null) || $cancelled !== ($state->entry_status === 'reversed') || ($cancelled && (int) $state->live_dispatches > 0)) {
+                $problems[] = "Sale {$state->number}: its cancellation is inconsistent.";
+            }
+
+            if ($state->credit_entry_id !== null && ($state->closed_at === null || $state->credit_type !== 'sale_credit' || (int) $state->credit_to_customer !== (int) $state->credit_total)) {
+                $problems[] = "Sale {$state->number}: its credit note is inconsistent.";
+            }
+        }
+
+        // 24. Money received for a sale (with it, or from its page) is a posted-or-reversed receipt
+        //     that credits that sale's customer.
+        $receipts = DB::table('sales as s')->whereNotNull('s.receipt_entry_id')->select('s.number', 's.customer_id', 's.receipt_entry_id as entry_id')
+            ->unionAll(DB::table('sale_receipts as r')->join('sales as s', 's.id', '=', 'r.sale_id')->select('s.number', 's.customer_id', 'r.journal_entry_id as entry_id'));
+        $badReceipts = DB::query()->fromSub($receipts, 'x')
+            ->join('journal_entries as e', 'e.id', '=', 'x.entry_id')
+            ->where(fn ($q) => $q->where('e.type', '!=', 'receipt')
+                ->orWhereNotExists(fn ($l) => $l->from('journal_lines as l')->whereColumn('l.journal_entry_id', 'e.id')->whereColumn('l.party_id', 'x.customer_id')->where('l.credit', '>', 0)))
+            ->pluck('x.number');
+        foreach ($badReceipts as $number) {
+            $problems[] = "Sale {$number}: money received for it is not a receipt from its customer.";
         }
 
         return $problems;

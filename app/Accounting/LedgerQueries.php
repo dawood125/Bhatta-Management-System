@@ -96,37 +96,31 @@ class LedgerQueries
 
     /**
      * Statement of one account for a period: balance before the period, each line with a
-     * running balance, and the closing balance. "In" increases the natural balance.
+     * running balance, and the closing balance. "In" increases the natural balance. With a page
+     * size, one page of lines (the last page unless another is asked for); the totals and the
+     * closing balance are always those of the whole period.
      *
-     * @return array{opening: Money, rows: list<array{line: JournalLine, in: Money, out: Money, balance: Money, counterparts: string}>, closing: Money, total_in: Money, total_out: Money}
+     * @return array{opening: Money, brought_forward: Money, rows: list<array{line: JournalLine, in: Money, out: Money, balance: Money, counterparts: string}>, closing: Money, total_in: Money, total_out: Money, page: int, pages: int, count: int}
      */
-    public function statement(LedgerAccount $account, CarbonInterface $from, CarbonInterface $to): array
+    public function statement(LedgerAccount $account, CarbonInterface $from, CarbonInterface $to, ?int $page = null, ?int $perPage = null): array
     {
         $opening = $this->balance($account, $from->copy()->subDay());
         $debitNormal = $account->type->isDebitNormal();
+        $natural = fn (int $debit, int $credit): Money => Money::fromPaisa($debitNormal ? $debit - $credit : $credit - $debit);
 
-        $lines = JournalLine::query()
-            ->select('journal_lines.*')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+        $slice = StatementPager::slice(JournalLine::query()
             ->where('journal_lines.ledger_account_id', $account->id)
-            ->whereBetween('journal_entries.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
-            ->orderBy('journal_entries.entry_date')
-            ->orderBy('journal_entries.id')
-            ->orderBy('journal_lines.line_no')
-            ->with(['entry.lines.account', 'entry.lines.party', 'entry.lines.worker', 'entry.creator'])
-            ->get();
+            ->whereBetween('journal_lines.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]), $page, $perPage);
+        $slice['lines']->load(['entry.lines.account', 'entry.lines.party', 'entry.lines.worker', 'entry.creator']);
 
-        $running = $opening;
-        $totalIn = Money::zero();
-        $totalOut = Money::zero();
+        $broughtForward = $opening->add($natural($slice['before_debit'], $slice['before_credit']));
+        $running = $broughtForward;
         $rows = [];
 
-        foreach ($lines as $line) {
+        foreach ($slice['lines'] as $line) {
             $in = $debitNormal ? $line->debit : $line->credit;
             $out = $debitNormal ? $line->credit : $line->debit;
             $running = $running->add($in)->subtract($out);
-            $totalIn = $totalIn->add($in);
-            $totalOut = $totalOut->add($out);
 
             $counterparts = $line->entry->lines
                 ->where('ledger_account_id', '!=', $account->id)
@@ -137,7 +131,17 @@ class LedgerQueries
             $rows[] = ['line' => $line, 'in' => $in, 'out' => $out, 'balance' => $running, 'counterparts' => $counterparts];
         }
 
-        return ['opening' => $opening, 'rows' => $rows, 'closing' => $running, 'total_in' => $totalIn, 'total_out' => $totalOut];
+        return [
+            'opening' => $opening,
+            'brought_forward' => $broughtForward,
+            'rows' => $rows,
+            'closing' => $opening->add($natural($slice['debit'], $slice['credit'])),
+            'total_in' => Money::fromPaisa($debitNormal ? $slice['debit'] : $slice['credit']),
+            'total_out' => Money::fromPaisa($debitNormal ? $slice['credit'] : $slice['debit']),
+            'page' => $slice['page'],
+            'pages' => $slice['pages'],
+            'count' => $slice['count'],
+        ];
     }
 
     /**
@@ -159,10 +163,9 @@ class LedgerQueries
         }
 
         $rows = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
             ->where('journal_lines.kiln_id', $this->currentKiln->id())
             ->whereIn('journal_lines.party_id', $partyIds)
-            ->when($asOf, fn ($q) => $q->where('journal_entries.entry_date', '<=', $asOf->format('Y-m-d')))
+            ->when($asOf, fn ($q) => $q->where('journal_lines.entry_date', '<=', $asOf->format('Y-m-d')))
             ->groupBy('journal_lines.party_id')
             ->select('journal_lines.party_id')
             ->selectRaw('SUM(journal_lines.debit) - SUM(journal_lines.credit) AS net')
@@ -204,45 +207,46 @@ class LedgerQueries
     /**
      * Statement of one party for a period. Debit = they owe us more (e.g. a sale);
      * credit = they owe us less, or we owe them more (e.g. a payment received, a purchase).
+     * Paged like statement().
      *
-     * @return array{opening: Money, rows: list<array{line: JournalLine, debit: Money, credit: Money, balance: Money}>, closing: Money, total_debit: Money, total_credit: Money}
+     * @return array{opening: Money, brought_forward: Money, rows: list<array{line: JournalLine, debit: Money, credit: Money, balance: Money}>, closing: Money, total_debit: Money, total_credit: Money, page: int, pages: int, count: int}
      */
-    public function partyStatement(Party $party, CarbonInterface $from, CarbonInterface $to): array
+    public function partyStatement(Party $party, CarbonInterface $from, CarbonInterface $to, ?int $page = null, ?int $perPage = null): array
     {
         $opening = $this->partyBalances([$party->id], $from->copy()->subDay())[$party->id];
 
-        $lines = JournalLine::query()
-            ->select('journal_lines.*')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+        $slice = StatementPager::slice(JournalLine::query()
             ->where('journal_lines.party_id', $party->id)
-            ->whereBetween('journal_entries.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
-            ->orderBy('journal_entries.entry_date')
-            ->orderBy('journal_entries.id')
-            ->orderBy('journal_lines.line_no')
-            ->with(['entry.lines.account', 'entry.lines.party', 'entry.creator'])
-            ->get();
+            ->whereBetween('journal_lines.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]), $page, $perPage);
+        $slice['lines']->load(['entry.lines.account', 'entry.lines.party', 'entry.creator']);
 
-        $running = $opening;
-        $totalDebit = Money::zero();
-        $totalCredit = Money::zero();
+        $broughtForward = $opening->add(Money::fromPaisa($slice['before_debit'] - $slice['before_credit']));
+        $running = $broughtForward;
         $rows = [];
 
-        foreach ($lines as $line) {
+        foreach ($slice['lines'] as $line) {
             $running = $running->add($line->debit)->subtract($line->credit);
-            $totalDebit = $totalDebit->add($line->debit);
-            $totalCredit = $totalCredit->add($line->credit);
             $rows[] = ['line' => $line, 'debit' => $line->debit, 'credit' => $line->credit, 'balance' => $running];
         }
 
-        return ['opening' => $opening, 'rows' => $rows, 'closing' => $running, 'total_debit' => $totalDebit, 'total_credit' => $totalCredit];
+        return [
+            'opening' => $opening,
+            'brought_forward' => $broughtForward,
+            'rows' => $rows,
+            'closing' => $opening->add(Money::fromPaisa($slice['debit'] - $slice['credit'])),
+            'total_debit' => Money::fromPaisa($slice['debit']),
+            'total_credit' => Money::fromPaisa($slice['credit']),
+            'page' => $slice['page'],
+            'pages' => $slice['pages'],
+            'count' => $slice['count'],
+        ];
     }
 
     private function sumsQuery(?CarbonInterface $asOf): Builder
     {
         return DB::table('journal_lines')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
             ->where('journal_lines.kiln_id', $this->currentKiln->id())
-            ->when($asOf, fn ($q) => $q->where('journal_entries.entry_date', '<=', $asOf->format('Y-m-d')))
+            ->when($asOf, fn ($q) => $q->where('journal_lines.entry_date', '<=', $asOf->format('Y-m-d')))
             ->groupBy('journal_lines.ledger_account_id')
             ->select('journal_lines.ledger_account_id')
             ->selectRaw('SUM(journal_lines.debit) AS debits, SUM(journal_lines.credit) AS credits');

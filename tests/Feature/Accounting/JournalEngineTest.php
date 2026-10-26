@@ -113,7 +113,7 @@ describe('immutability', function () {
 
     it('lets the database refuse a two-sided line even if the application were bypassed', function () {
         DB::table('journal_lines')->insert([
-            'kiln_id' => $this->kiln->id, 'journal_entry_id' => $this->entry->id, 'ledger_account_id' => $this->cash->id,
+            'kiln_id' => $this->kiln->id, 'journal_entry_id' => $this->entry->id, 'entry_date' => $this->entry->entry_date->format('Y-m-d'), 'ledger_account_id' => $this->cash->id,
             'line_no' => 9, 'debit' => 100, 'credit' => 100, 'created_at' => now(), 'updated_at' => now(),
         ]);
     })->throws(QueryException::class);

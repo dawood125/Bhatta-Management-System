@@ -29,7 +29,13 @@
         <div class="flex shrink-0 flex-col items-start gap-2 sm:items-end">
             <p class="text-xs font-medium uppercase tracking-wide text-stone-500">{{ __('Current balance') }}</p>
             <x-party-balance :amount="$this->currentBalance" size="lg" />
-            <x-ui.button size="sm" variant="secondary" icon="printer" x-on:click="window.print()" class="print:hidden">{{ __('Print') }}</x-ui.button>
+            <div class="flex flex-wrap gap-2 print:hidden">
+                <x-ui.button size="sm" variant="secondary" icon="printer" x-on:click="window.print()">{{ __('Print') }}</x-ui.button>
+                <x-ui.button size="sm" variant="secondary" icon="file-text" :href="$pdfUrl" target="_blank">{{ __('PDF') }}</x-ui.button>
+                @if ($canWriteOff)
+                    <x-ui.button size="sm" variant="secondary" icon="circle-slash" wire:click="openWriteOff">{{ __('Write off') }}</x-ui.button>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -74,7 +80,7 @@
 
             <tr class="bg-stone-50/60">
                 <x-ui.td colspan="5" class="font-medium text-stone-600">{{ __('Balance brought forward') }}</x-ui.td>
-                <x-ui.td align="end"><x-party-balance :amount="$statement['opening']" /></x-ui.td>
+                <x-ui.td align="end"><x-party-balance :amount="$statement['brought_forward']" /></x-ui.td>
             </tr>
 
             @forelse ($statement['rows'] as $row)
@@ -112,7 +118,31 @@
                 <x-ui.td align="end"><x-party-balance :amount="$statement['closing']" /></x-ui.td>
             </tr>
         </x-ui.table>
+        <x-ui.statement-pager :statement="$statement" />
 
         <p class="mt-3 hidden text-xs text-stone-500 print:block">{{ __('Printed on :date', ['date' => now()->format('d-m-Y g:i A')]) }}</p>
+    @endif
+
+    @if ($canWriteOff)
+        <x-ui.modal wire:model="showWriteOff" :title="__('Write off')" :description="__('What this customer will never pay leaves their account and becomes the expense “Bad debts written off”. It can be reversed later if they pay after all.')" max-width="md">
+            <form id="write-off-form" wire:submit="writeOff" class="space-y-4">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <x-ui.field :label="__('Amount')" for="write-off-amount" error="writeOffForm.amount" required>
+                        <x-ui.input id="write-off-amount" wire:model="writeOffForm.amount" inputmode="decimal" dir="ltr" class="text-end tabular" :suffix="__('Rs')" autocomplete="off" />
+                    </x-ui.field>
+                    <x-ui.field :label="__('Date')" for="write-off-date" error="writeOffForm.entry_date" required>
+                        <x-ui.input id="write-off-date" type="date" wire:model="writeOffForm.entry_date" dir="ltr" max="{{ now()->format('Y-m-d') }}" />
+                    </x-ui.field>
+                </div>
+                <x-ui.field :label="__('Reason')" for="write-off-reason" error="writeOffForm.reason" required :hint="__('For example: customer left the area.')">
+                    <x-ui.input id="write-off-reason" wire:model="writeOffForm.reason" />
+                </x-ui.field>
+            </form>
+
+            <x-slot:footer>
+                <x-ui.button variant="secondary" x-on:click="open = false">{{ __('Cancel') }}</x-ui.button>
+                <x-ui.button type="submit" form="write-off-form" variant="danger" icon="check" loading="writeOff">{{ __('Write off') }}</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 </div>

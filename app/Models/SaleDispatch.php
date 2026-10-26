@@ -1,0 +1,135 @@
+<?php
+
+namespace App\Models;
+
+use App\Accounting\LedgerIntegrityException;
+use App\Casts\MoneyCast;
+use App\Models\Concerns\BelongsToKiln;
+use App\Support\Money;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * A delivery (trip DS-…): the bricks of a sale that left the kiln, with the driver, vehicle and
+ * carriage when the kiln arranged the transport. Never edited or deleted: the only change allowed
+ * is marking it reversed, together with the mirror movements that put the bricks back.
+ *
+ * @property int $id
+ * @property int $kiln_id
+ * @property int $sale_id
+ * @property string $number
+ * @property Carbon $dispatch_date
+ * @property int|null $driver_id
+ * @property string|null $vehicle
+ * @property Money $carriage
+ * @property int|null $carriage_entry_id
+ * @property string|null $notes
+ * @property string $idempotency_key
+ * @property int|null $created_by
+ * @property Carbon|null $reversed_at
+ * @property int|null $reversed_by
+ * @property string|null $reversal_reason
+ * @property-read Sale $sale
+ * @property-read Party|null $driver
+ * @property-read JournalEntry|null $carriageEntry
+ * @property-read Collection<int, SaleDispatchLine> $lines
+ * @property-read Collection<int, BrickMovement> $movements
+ * @property-read User|null $creator
+ * @property-read User|null $reverser
+ */
+class SaleDispatch extends Model
+{
+    use BelongsToKiln;
+
+    protected $guarded = ['id'];
+
+    protected function casts(): array
+    {
+        return [
+            'dispatch_date' => 'date',
+            'carriage' => MoneyCast::class,
+            'reversed_at' => 'datetime',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (SaleDispatch $dispatch): void {
+            $allowed = ['reversed_at', 'reversed_by', 'reversal_reason', 'updated_at'];
+
+            if (array_diff(array_keys($dispatch->getDirty()), $allowed) !== [] || $dispatch->getOriginal('reversed_at') !== null) {
+                throw new LedgerIntegrityException('Deliveries cannot be changed; reverse them instead.');
+            }
+        });
+
+        static::deleting(function (): void {
+            throw new LedgerIntegrityException('Deliveries can never be deleted; reverse them instead.');
+        });
+    }
+
+    /**
+     * @return BelongsTo<Sale, $this>
+     */
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
+    }
+
+    /**
+     * @return BelongsTo<Party, $this>
+     */
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'driver_id');
+    }
+
+    /**
+     * @return BelongsTo<JournalEntry, $this>
+     */
+    public function carriageEntry(): BelongsTo
+    {
+        return $this->belongsTo(JournalEntry::class, 'carriage_entry_id');
+    }
+
+    /**
+     * @return HasMany<SaleDispatchLine, $this>
+     */
+    public function lines(): HasMany
+    {
+        return $this->hasMany(SaleDispatchLine::class)->orderBy('id');
+    }
+
+    /**
+     * The delivery's own movements (not their reversals).
+     *
+     * @return HasMany<BrickMovement, $this>
+     */
+    public function movements(): HasMany
+    {
+        return $this->hasMany(BrickMovement::class)->whereNull('reversal_of_id')->orderBy('id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function reverser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reversed_by');
+    }
+
+    public function isReversed(): bool
+    {
+        return $this->reversed_at !== null;
+    }
+}

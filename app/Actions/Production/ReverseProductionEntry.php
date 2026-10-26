@@ -2,6 +2,7 @@
 
 namespace App\Actions\Production;
 
+use App\Accounting\BooksLock;
 use App\Accounting\JournalPoster;
 use App\Actions\Materials\ReverseMaterialEntry;
 use App\Actions\Production\Concerns\PostsProduction;
@@ -53,6 +54,7 @@ class ReverseProductionEntry
 
             $movements = $fresh->movements()->with('product.unit')->get();
             $today = now()->startOfDay();
+            app(BooksLock::class)->assertOpen($today, $actor);
 
             // What the reversal does to each stage (and grade), checked before anything is written.
             $changes = [];

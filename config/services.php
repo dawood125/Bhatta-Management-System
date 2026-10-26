@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // Copies of the backups on the owner's Google Drive (M11). One Google OAuth client of type
+    // "TVs and Limited Input devices", the same for every installation (docs/07-deployment.md).
+    'google_drive' => [
+        'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+        'keep' => (int) env('GOOGLE_DRIVE_KEEP', 30),
+    ],
+
 ];

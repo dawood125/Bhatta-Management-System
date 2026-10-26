@@ -28,6 +28,8 @@ require_once __DIR__.'/Support/vouchers.php';
 require_once __DIR__.'/Support/materials.php';
 require_once __DIR__.'/Support/production.php';
 require_once __DIR__.'/Support/labour.php';
+require_once __DIR__.'/Support/sales.php';
+require_once __DIR__.'/Support/backups.php';
 
 /** Create an active kiln. */
 function makeKiln(array $attributes = []): Kiln

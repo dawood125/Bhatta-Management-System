@@ -68,7 +68,9 @@
         <x-ui.card>
             <div class="mb-3 flex items-center justify-between gap-3">
                 <h2 class="text-base font-semibold text-stone-900">{{ __('Materials') }}</h2>
-                <a href="{{ route('settings.materials') }}" wire:navigate class="text-xs font-medium text-stone-500 hover:text-stone-800">{{ __('Add materials in Kiln settings.') }}</a>
+                @can(\App\Enums\Permission::SettingsManage->value)
+                    <a href="{{ route('settings.materials') }}" wire:navigate class="text-xs font-medium text-stone-500 hover:text-stone-800">{{ __('Add materials in Kiln settings.') }}</a>
+                @endcan
             </div>
 
             @error('form.lines')

@@ -4,6 +4,7 @@ namespace App\Livewire\Accounts;
 
 use App\Accounting\LedgerQueries;
 use App\Enums\Permission;
+use App\Livewire\Concerns\PagesStatement;
 use App\Models\TreasuryAccount;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
@@ -18,6 +19,8 @@ use Livewire\Component;
  */
 class CashBook extends Component
 {
+    use PagesStatement;
+
     public TreasuryAccount $account;
 
     #[Url]
@@ -36,6 +39,7 @@ class CashBook extends Component
 
     public function setRange(string $range): void
     {
+        $this->statementPage = '';
         [$this->from, $this->to] = match ($range) {
             'today' => [now()->format('Y-m-d'), now()->format('Y-m-d')],
             'last_month' => [now()->subMonthNoOverflow()->startOfMonth()->format('Y-m-d'), now()->subMonthNoOverflow()->endOfMonth()->format('Y-m-d')],
@@ -45,7 +49,7 @@ class CashBook extends Component
     }
 
     /**
-     * @return array{opening: Money, rows: list<array<string, mixed>>, closing: Money, total_in: Money, total_out: Money}|null
+     * @return array{opening: Money, brought_forward: Money, rows: list<array<string, mixed>>, closing: Money, total_in: Money, total_out: Money, page: int, pages: int, count: int}|null
      */
     #[Computed]
     public function statement(): ?array
@@ -63,6 +67,8 @@ class CashBook extends Component
             $this->account->ledgerAccount,
             Carbon::createFromFormat('Y-m-d', $from)->startOfDay(),
             Carbon::createFromFormat('Y-m-d', $to)->startOfDay(),
+            $this->statementPageNumber(),
+            $this->statementPerPage(),
         );
     }
 

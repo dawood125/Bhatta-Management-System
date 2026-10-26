@@ -40,6 +40,9 @@ class ActivityPresenter
             'roles_changed' => __('Roles changed'),
             'rate_set' => __('Rate set'),
             'rate_removed' => __('Rate removed'),
+            'backup_made' => __('Backup made'),
+            'backup_downloaded' => __('Backup downloaded'),
+            'restore_tested' => __('Restore tested'),
             default => (string) $activity->description,
         };
     }
@@ -51,7 +54,8 @@ class ActivityPresenter
             'deleted' => 'danger',
             'role_changed', 'roles_changed', 'password_reset', 'rate_removed' => 'warning',
             'rate_set' => 'info',
-            'logged_in', 'password_changed' => 'info',
+            'logged_in', 'password_changed', 'backup_made', 'restore_tested' => 'info',
+            'backup_downloaded' => 'warning',
             default => 'neutral',
         };
     }

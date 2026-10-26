@@ -9,6 +9,7 @@ use App\Actions\Labour\RecordWorkerMoney;
 use App\Enums\PayBasis;
 use App\Enums\Permission;
 use App\Labour\WorkerLedger;
+use App\Livewire\Concerns\PagesStatement;
 use App\Livewire\Concerns\RunsActions;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
@@ -33,7 +34,7 @@ use Livewire\Component;
  * A worker's account (khata): what they earned, the advances, deductions and payments, with the
  * running balance. Work, advances and deductions are recorded from here. Printable.
  *
- * @property-read array{opening: Money, rows: list<array{line: JournalLine, earned: Money, taken: Money, balance: Money}>, closing: Money, total_earned: Money, total_taken: Money}|null $statement Livewire computed property
+ * @property-read array{opening: Money, brought_forward: Money, rows: list<array{line: JournalLine, earned: Money, taken: Money, balance: Money}>, closing: Money, total_earned: Money, total_taken: Money, page: int, pages: int, count: int}|null $statement Livewire computed property
  * @property-read array<int, WorkEntry> $workEntries Livewire computed property
  * @property-read Money $currentBalance Livewire computed property
  * @property-read LabourRate|null $currentRate Livewire computed property
@@ -45,7 +46,7 @@ use Livewire\Component;
  */
 class WorkerAccount extends Component
 {
-    use RunsActions;
+    use PagesStatement, RunsActions;
 
     public Worker $worker;
 
@@ -86,6 +87,7 @@ class WorkerAccount extends Component
 
     public function setRange(string $range): void
     {
+        $this->statementPage = '';
         [$this->from, $this->to] = match ($range) {
             'this_week' => [now()->startOfWeek(Carbon::MONDAY)->format('Y-m-d'), now()->format('Y-m-d')],
             'last_month' => [now()->subMonthNoOverflow()->startOfMonth()->format('Y-m-d'), now()->subMonthNoOverflow()->endOfMonth()->format('Y-m-d')],
@@ -95,7 +97,7 @@ class WorkerAccount extends Component
     }
 
     /**
-     * @return array{opening: Money, rows: list<array{line: JournalLine, earned: Money, taken: Money, balance: Money}>, closing: Money, total_earned: Money, total_taken: Money}|null
+     * @return array{opening: Money, brought_forward: Money, rows: list<array{line: JournalLine, earned: Money, taken: Money, balance: Money}>, closing: Money, total_earned: Money, total_taken: Money, page: int, pages: int, count: int}|null
      */
     #[Computed]
     public function statement(): ?array
@@ -111,6 +113,8 @@ class WorkerAccount extends Component
             $this->worker,
             Carbon::createFromFormat('Y-m-d', $from)->startOfDay(),
             Carbon::createFromFormat('Y-m-d', $to)->startOfDay(),
+            $this->statementPageNumber(),
+            $this->statementPerPage(),
         );
     }
 

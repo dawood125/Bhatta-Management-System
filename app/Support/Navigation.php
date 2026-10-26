@@ -21,6 +21,10 @@ class Navigation
                 'label' => __('Overview'),
                 'items' => [
                     ['label' => __('Dashboard'), 'route' => 'dashboard', 'icon' => 'layout-dashboard', 'active' => 'dashboard', 'permissions' => []],
+                    ['label' => __('Reports'), 'route' => 'reports.index', 'icon' => 'chart-column', 'active' => 'reports.*', 'permissions' => [
+                        Permission::FinancialReportsView, Permission::DaysClose, Permission::AccountsView, Permission::PartiesView,
+                        Permission::SalesView, Permission::ProductionView, Permission::MaterialsView, Permission::LabourView,
+                    ]],
                 ],
             ],
             [
@@ -31,12 +35,13 @@ class Navigation
                     ['label' => __('Expenses'), 'route' => 'expenses.index', 'icon' => 'receipt-text', 'active' => 'expenses.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Cash and bank'), 'route' => 'accounts.index', 'icon' => 'wallet', 'active' => 'accounts.*', 'permissions' => [Permission::AccountsView]],
                     ['label' => __('Transactions'), 'route' => 'transactions.index', 'icon' => 'receipt', 'active' => 'transactions.*', 'permissions' => [Permission::AccountsView]],
-                    ['label' => __('Trial balance'), 'route' => 'reports.trial-balance', 'icon' => 'scale', 'active' => 'reports.trial-balance', 'permissions' => [Permission::FinancialReportsView]],
+                    ['label' => __('Day close'), 'route' => 'reports.day-close', 'icon' => 'lock', 'active' => 'reports.day-close', 'permissions' => [Permission::DaysClose]],
                 ],
             ],
             [
                 'label' => __('Kiln'),
                 'items' => [
+                    ['label' => __('Sales'), 'route' => 'sales.index', 'icon' => 'shopping-cart', 'active' => 'sales.*', 'permissions' => [Permission::SalesView]],
                     ['label' => __('Production'), 'route' => 'production.index', 'icon' => 'factory', 'active' => 'production.*', 'permissions' => [Permission::ProductionView]],
                     ['label' => __('Materials'), 'route' => 'materials.index', 'icon' => 'package', 'active' => 'materials.*', 'permissions' => [Permission::MaterialsView]],
                     ['label' => __('Labour'), 'route' => 'labour.index', 'icon' => 'hard-hat', 'active' => 'labour.*', 'permissions' => [Permission::LabourView]],
@@ -48,6 +53,7 @@ class Navigation
                     ['label' => __('Kiln settings'), 'route' => 'settings.index', 'icon' => 'settings', 'active' => 'settings.*', 'permissions' => [Permission::KilnProfileManage, Permission::SettingsManage]],
                     ['label' => __('Users'), 'route' => 'users.index', 'icon' => 'users', 'active' => 'users.*', 'permissions' => [Permission::UsersView]],
                     ['label' => __('Activity log'), 'route' => 'activity.index', 'icon' => 'history', 'active' => 'activity.*', 'permissions' => [Permission::ActivityView]],
+                    ['label' => __('Backups'), 'route' => 'backups.index', 'icon' => 'database-backup', 'active' => 'backups.*', 'permissions' => [Permission::BackupsManage]],
                 ],
             ],
         ];
@@ -79,6 +85,7 @@ class Navigation
     {
         $tabs = [
             ['label' => __('Kiln profile'), 'route' => 'settings.kiln', 'icon' => 'factory', 'permissions' => [Permission::KilnProfileManage]],
+            ['label' => __('Email'), 'route' => 'settings.email', 'icon' => 'mail', 'permissions' => [Permission::KilnProfileManage]],
             ['label' => __('Products and grades'), 'route' => 'settings.products', 'icon' => 'brick-wall', 'permissions' => [Permission::SettingsManage]],
             ['label' => __('Production stages'), 'route' => 'settings.stages', 'icon' => 'flame', 'permissions' => [Permission::SettingsManage]],
             ['label' => __('Units'), 'route' => 'settings.units', 'icon' => 'ruler', 'permissions' => [Permission::SettingsManage]],

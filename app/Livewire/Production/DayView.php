@@ -9,6 +9,7 @@ use App\Livewire\Concerns\RunsActions;
 use App\Models\Product;
 use App\Models\ProductionEntry;
 use App\Models\ProductionStage;
+use App\Models\SaleDispatch;
 use App\Production\BrickStock;
 use App\Support\Quantity;
 use Illuminate\Contracts\View\View;
@@ -24,6 +25,7 @@ use Livewire\Component;
  * what came in and went out, the day's entries, Pathai totals, and entries worth a second look
  * (possible duplicates, stock adjustments). Printable.
  *
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SaleDispatch> $dispatches Livewire computed property
  * @property-read array{slots: list<array{stage: StageKind, product_id: int|null, opening: Quantity, in: Quantity, out: Quantity, closing: Quantity}>, entries: Collection<int, ProductionEntry>, pathai: array{made: Quantity, rejected: Quantity, accepted: Quantity}, duplicates: list<int>}|null $report Livewire computed property
  */
 class DayView extends Component
@@ -59,6 +61,23 @@ class DayView extends Component
         $day = $this->validDay($this->date);
 
         return $day === null ? null : app(BrickStock::class)->day(Carbon::createFromFormat('Y-m-d', $day)->startOfDay());
+    }
+
+    /**
+     * Bricks delivered to customers that day (they leave "ready for sale" stock too).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, SaleDispatch>
+     */
+    #[Computed]
+    public function dispatches(): \Illuminate\Database\Eloquent\Collection
+    {
+        $day = $this->validDay($this->date);
+
+        return SaleDispatch::query()
+            ->where('dispatch_date', $day ?? '0000-00-00')
+            ->with(['sale.customer', 'sale.lines.product.unit', 'lines', 'creator'])
+            ->orderBy('id')
+            ->get();
     }
 
     /**

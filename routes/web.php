@@ -1,11 +1,16 @@
 <?php
 
+use App\Http\Controllers\BackupDownloadController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PartyStatementPdfController;
+use App\Http\Controllers\ReportPdfController;
+use App\Http\Controllers\SaleInvoiceController;
 use App\Http\Controllers\SettingsHomeController;
 use App\Livewire\Accounts\AccountIndex;
 use App\Livewire\Accounts\CashBook;
 use App\Livewire\Accounts\TransactionIndex;
 use App\Livewire\Activity\ActivityIndex;
+use App\Livewire\Backups\BackupIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\Dev\ComponentGallery;
 use App\Livewire\Expenses\ExpenseIndex;
@@ -30,8 +35,23 @@ use App\Livewire\Production\DayView;
 use App\Livewire\Production\EntryIndex;
 use App\Livewire\Production\StockOverview;
 use App\Livewire\Profile\ProfileEdit;
+use App\Livewire\Reports\BalanceSheet;
+use App\Livewire\Reports\CostPerThousandReport;
+use App\Livewire\Reports\DayCloseIndex;
+use App\Livewire\Reports\ProductionReport;
+use App\Livewire\Reports\ProfitAndLoss;
+use App\Livewire\Reports\ReceivablesReport;
+use App\Livewire\Reports\ReportIndex;
+use App\Livewire\Reports\SalesReport;
 use App\Livewire\Reports\TrialBalance;
+use App\Livewire\Sales\DispatchIndex;
+use App\Livewire\Sales\DriversDue;
+use App\Livewire\Sales\EmailLogIndex;
+use App\Livewire\Sales\SaleForm;
+use App\Livewire\Sales\SaleIndex;
+use App\Livewire\Sales\SaleShow;
 use App\Livewire\Settings\AreaIndex;
+use App\Livewire\Settings\EmailSettings;
 use App\Livewire\Settings\ExpenseCategoryIndex;
 use App\Livewire\Settings\KilnProfile;
 use App\Livewire\Settings\MaterialIndex;
@@ -55,11 +75,22 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
 
     Route::livewire('/parties', PartyIndex::class)->name('parties.index');
     Route::livewire('/parties/{party}', PartyStatement::class)->name('parties.show');
+    Route::get('/parties/{party}/statement.pdf', PartyStatementPdfController::class)->middleware('throttle:pdf')->name('parties.statement.pdf');
 
     Route::livewire('/vouchers', VoucherIndex::class)->name('vouchers.index');
     Route::livewire('/vouchers/new/{kind}', VoucherForm::class)->whereIn('kind', ['payment', 'receipt'])->name('vouchers.create');
     Route::livewire('/vouchers/{entry}', VoucherShow::class)->whereNumber('entry')->name('vouchers.show');
     Route::livewire('/expenses', ExpenseIndex::class)->name('expenses.index');
+
+    Route::prefix('sales')->name('sales.')->group(function () {
+        Route::livewire('/', SaleIndex::class)->name('index');
+        Route::livewire('/new', SaleForm::class)->name('create');
+        Route::livewire('/deliveries', DispatchIndex::class)->name('deliveries');
+        Route::livewire('/drivers', DriversDue::class)->name('drivers');
+        Route::livewire('/emails', EmailLogIndex::class)->name('emails');
+        Route::livewire('/{sale}', SaleShow::class)->whereNumber('sale')->name('show');
+        Route::get('/{sale}/invoice', SaleInvoiceController::class)->whereNumber('sale')->middleware('throttle:pdf')->name('invoice');
+    });
 
     Route::prefix('production')->name('production.')->group(function () {
         Route::livewire('/', StockOverview::class)->name('index');
@@ -91,11 +122,27 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
     Route::livewire('/accounts', AccountIndex::class)->name('accounts.index');
     Route::livewire('/accounts/{account}/book', CashBook::class)->name('accounts.book');
     Route::livewire('/transactions', TransactionIndex::class)->name('transactions.index');
-    Route::livewire('/reports/trial-balance', TrialBalance::class)->name('reports.trial-balance');
+
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::livewire('/', ReportIndex::class)->name('index');
+        Route::livewire('/profit-and-loss', ProfitAndLoss::class)->name('profit-and-loss');
+        Route::livewire('/balance-sheet', BalanceSheet::class)->name('balance-sheet');
+        Route::livewire('/trial-balance', TrialBalance::class)->name('trial-balance');
+        Route::livewire('/day-close', DayCloseIndex::class)->name('day-close');
+        Route::livewire('/sales', SalesReport::class)->name('sales');
+        Route::livewire('/production', ProductionReport::class)->name('production');
+        Route::livewire('/costs', CostPerThousandReport::class)->name('costs');
+        Route::livewire('/receivables', ReceivablesReport::class)->name('receivables');
+        Route::get('/{report}.pdf', ReportPdfController::class)->whereIn('report', ['profit-and-loss', 'balance-sheet'])->middleware('throttle:pdf')->name('pdf');
+    });
+
+    Route::livewire('/backups', BackupIndex::class)->name('backups.index');
+    Route::get('/backups/{disk}/{file}', BackupDownloadController::class)->where(['disk' => '[a-z0-9_-]+', 'file' => '[A-Za-z0-9._-]+\\.zip'])->middleware('throttle:pdf')->name('backups.download');
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', SettingsHomeController::class)->name('index');
         Route::livewire('/kiln', KilnProfile::class)->name('kiln');
+        Route::livewire('/email', EmailSettings::class)->name('email');
         Route::livewire('/products', ProductIndex::class)->name('products');
         Route::livewire('/units', UnitIndex::class)->name('units');
         Route::livewire('/stages', StageIndex::class)->name('stages');

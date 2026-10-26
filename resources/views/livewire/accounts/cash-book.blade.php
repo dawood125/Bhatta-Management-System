@@ -56,8 +56,8 @@
             </x-slot:head>
 
             <tr class="bg-stone-50/60">
-                <x-ui.td colspan="5" class="font-medium text-stone-600">{{ __('Opening balance') }}</x-ui.td>
-                <x-ui.td align="end" class="font-semibold"><x-ui.money :amount="$statement['opening']" :currency="false" /></x-ui.td>
+                <x-ui.td colspan="5" class="font-medium text-stone-600">{{ $statement['page'] > 1 ? __('Balance brought forward') : __('Opening balance') }}</x-ui.td>
+                <x-ui.td align="end" class="font-semibold"><x-ui.money :amount="$statement['brought_forward']" :currency="false" /></x-ui.td>
             </tr>
 
             @forelse ($statement['rows'] as $row)
@@ -89,5 +89,6 @@
                 <x-ui.td align="end"><x-ui.money :amount="$statement['closing']" :currency="false" /></x-ui.td>
             </tr>
         </x-ui.table>
+        <x-ui.statement-pager :statement="$statement" />
     @endif
 </div>

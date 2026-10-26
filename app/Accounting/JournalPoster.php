@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\DB;
  * The only way money enters the ledger.
  *
  * Every entry: belongs to the current kiln, has at least two lines, each line is a positive
- * debit or a positive credit, debits equal credits, and it gets a gap-free number. Posting the
+ * debit or a positive credit, debits equal credits, is not dated in a closed day (BooksLock),
+ * and it gets a gap-free number. Posting the
  * same idempotency key twice returns the first entry instead of creating a second one, so a
  * double-click or a retried request can never record money twice.
  */
@@ -25,6 +26,7 @@ class JournalPoster
     public function __construct(
         private readonly CurrentKiln $currentKiln,
         private readonly DocumentNumbers $numbers,
+        private readonly BooksLock $booksLock,
     ) {}
 
     /**
@@ -114,6 +116,8 @@ class JournalPoster
             throw new LedgerIntegrityException('Entries cannot be dated in the future.');
         }
 
+        $this->booksLock->assertOpen($date, $by);
+
         try {
             return DB::transaction(function () use ($type, $date, $lines, $idempotencyKey, $by, $memo, $reversalOf, $total): JournalEntry {
                 $entry = JournalEntry::query()->create([
@@ -131,6 +135,7 @@ class JournalPoster
                 foreach ($lines as $index => $line) {
                     JournalLine::query()->create([
                         'journal_entry_id' => $entry->id,
+                        'entry_date' => $date->format('Y-m-d'),
                         'ledger_account_id' => $line->account->id,
                         'party_id' => $line->party?->id,
                         'worker_id' => $line->worker?->id,

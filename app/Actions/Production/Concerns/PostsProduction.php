@@ -2,6 +2,7 @@
 
 namespace App\Actions\Production\Concerns;
 
+use App\Accounting\BooksLock;
 use App\Accounting\DocumentNumbers;
 use App\Accounting\LedgerIntegrityException;
 use App\Actions\Labour\RecordWorkEntry;
@@ -67,6 +68,8 @@ trait PostsProduction
      */
     protected function createEntry(ProductionEntryKind $kind, CarbonInterface $date, array $attributes, string $idempotencyKey, User $actor): ProductionEntry
     {
+        app(BooksLock::class)->assertOpen($date, $actor);
+
         return ProductionEntry::query()->create($attributes + [
             'kind' => $kind,
             'number' => app(DocumentNumbers::class)->next($kind->prefix(), $date),

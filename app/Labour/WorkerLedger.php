@@ -2,6 +2,7 @@
 
 namespace App\Labour;
 
+use App\Accounting\StatementPager;
 use App\Enums\JournalType;
 use App\Models\JournalLine;
 use App\Models\LabourRate;
@@ -37,10 +38,9 @@ class WorkerLedger
         }
 
         $rows = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
             ->where('journal_lines.kiln_id', $this->currentKiln->id())
             ->whereIn('journal_lines.worker_id', $workerIds)
-            ->when($asOf, fn ($q) => $q->where('journal_entries.entry_date', '<=', $asOf->format('Y-m-d')))
+            ->when($asOf, fn ($q) => $q->where('journal_lines.entry_date', '<=', $asOf->format('Y-m-d')))
             ->groupBy('journal_lines.worker_id')
             ->select('journal_lines.worker_id')
             ->selectRaw('SUM(journal_lines.credit) - SUM(journal_lines.debit) AS net')
@@ -96,10 +96,11 @@ class WorkerLedger
         if ($workerIds !== []) {
             $rows = DB::table('journal_lines as l')
                 ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+                ->where('e.kiln_id', $this->currentKiln->id())
                 ->leftJoin('journal_entries as o', 'o.id', '=', 'e.reversal_of_id')
                 ->where('l.kiln_id', $this->currentKiln->id())
                 ->whereIn('l.worker_id', $workerIds)
-                ->whereBetween('e.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
+                ->whereBetween('l.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
                 ->groupBy('l.worker_id', DB::raw('COALESCE(o.type, e.type)'))
                 ->select('l.worker_id')
                 ->selectRaw('COALESCE(o.type, e.type) AS kind')
@@ -134,38 +135,40 @@ class WorkerLedger
 
     /**
      * A worker's statement for a period: balance brought forward, each earning, advance,
-     * deduction and payment with the running balance, and the closing balance.
+     * deduction and payment with the running balance, and the closing balance. Paged like the
+     * account statement (LedgerQueries::statement()).
      *
-     * @return array{opening: Money, rows: list<array{line: JournalLine, earned: Money, taken: Money, balance: Money}>, closing: Money, total_earned: Money, total_taken: Money}
+     * @return array{opening: Money, brought_forward: Money, rows: list<array{line: JournalLine, earned: Money, taken: Money, balance: Money}>, closing: Money, total_earned: Money, total_taken: Money, page: int, pages: int, count: int}
      */
-    public function statement(Worker $worker, CarbonInterface $from, CarbonInterface $to): array
+    public function statement(Worker $worker, CarbonInterface $from, CarbonInterface $to, ?int $page = null, ?int $perPage = null): array
     {
         $opening = $this->balances([$worker->id], $from->copy()->subDay())[$worker->id];
 
-        $lines = JournalLine::query()
-            ->select('journal_lines.*')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+        $slice = StatementPager::slice(JournalLine::query()
             ->where('journal_lines.worker_id', $worker->id)
-            ->whereBetween('journal_entries.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
-            ->orderBy('journal_entries.entry_date')
-            ->orderBy('journal_entries.id')
-            ->orderBy('journal_lines.line_no')
-            ->with(['entry.lines.account', 'entry.lines.party', 'entry.lines.worker', 'entry.creator'])
-            ->get();
+            ->whereBetween('journal_lines.entry_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]), $page, $perPage);
+        $slice['lines']->load(['entry.lines.account', 'entry.lines.party', 'entry.lines.worker', 'entry.creator']);
 
-        $running = $opening;
-        $earned = Money::zero();
-        $taken = Money::zero();
+        $broughtForward = $opening->add(Money::fromPaisa($slice['before_credit'] - $slice['before_debit']));
+        $running = $broughtForward;
         $rows = [];
 
-        foreach ($lines as $line) {
+        foreach ($slice['lines'] as $line) {
             $running = $running->add($line->credit)->subtract($line->debit);
-            $earned = $earned->add($line->credit);
-            $taken = $taken->add($line->debit);
             $rows[] = ['line' => $line, 'earned' => $line->credit, 'taken' => $line->debit, 'balance' => $running];
         }
 
-        return ['opening' => $opening, 'rows' => $rows, 'closing' => $running, 'total_earned' => $earned, 'total_taken' => $taken];
+        return [
+            'opening' => $opening,
+            'brought_forward' => $broughtForward,
+            'rows' => $rows,
+            'closing' => $opening->add(Money::fromPaisa($slice['credit'] - $slice['debit'])),
+            'total_earned' => Money::fromPaisa($slice['credit']),
+            'total_taken' => Money::fromPaisa($slice['debit']),
+            'page' => $slice['page'],
+            'pages' => $slice['pages'],
+            'count' => $slice['count'],
+        ];
     }
 
     /**

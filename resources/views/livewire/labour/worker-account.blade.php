@@ -105,7 +105,7 @@
 
             <tr class="bg-stone-50/60">
                 <x-ui.td colspan="5" class="font-medium text-stone-600">{{ __('Balance brought forward') }}</x-ui.td>
-                <x-ui.td align="end"><x-worker-balance :amount="$statement['opening']" /></x-ui.td>
+                <x-ui.td align="end"><x-worker-balance :amount="$statement['brought_forward']" /></x-ui.td>
                 @if ($canReverse)
                     <x-ui.td class="print:hidden" />
                 @endif
@@ -173,6 +173,7 @@
                 @endif
             </tr>
         </x-ui.table>
+        <x-ui.statement-pager :statement="$statement" />
 
         <p class="mt-3 text-xs text-stone-500">{{ __('Earned: wages, salary and contract amounts. Taken: advances, deductions and wages paid.') }}</p>
         <p class="mt-1 hidden text-xs text-stone-500 print:block">{{ __('Printed on :date', ['date' => now()->format('d-m-Y g:i A')]) }}</p>

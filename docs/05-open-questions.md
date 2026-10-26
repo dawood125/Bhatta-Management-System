@@ -64,6 +64,8 @@ Tags:
 
 ## E. Sales (before M8)
 
+M8 was built on the proposed defaults below (decisions D-078 to D-087). An answer can still change them.
+
 | ID | Question | Proposed default |
 |---|---|---|
 | Q-30 [BIZ] | Is stock **reserved when the order is made**, or only **reduced when bricks are picked up**? Can one order be picked up over several trips? | Reserve on confirm; reduce on each dispatch |
@@ -74,6 +76,8 @@ Tags:
 | Q-35 [OPS] | Which email provider / SMTP account will be used? | Any SMTP; credentials in `.env` |
 
 ## F. Finance and reports (before M9)
+
+M9 was built on the proposed defaults below (decisions D-089 to D-091). An answer can still change them.
 
 | ID | Question | Proposed default |
 |---|---|---|

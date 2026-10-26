@@ -209,10 +209,9 @@ class FinancialStatements
     private function sums(?CarbonInterface $from, CarbonInterface $to): Collection
     {
         return DB::table('journal_lines')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
             ->where('journal_lines.kiln_id', $this->currentKiln->id())
-            ->when($from, fn ($q) => $q->where('journal_entries.entry_date', '>=', $from->format('Y-m-d')))
-            ->where('journal_entries.entry_date', '<=', $to->format('Y-m-d'))
+            ->when($from, fn ($q) => $q->where('journal_lines.entry_date', '>=', $from->format('Y-m-d')))
+            ->where('journal_lines.entry_date', '<=', $to->format('Y-m-d'))
             ->groupBy('journal_lines.ledger_account_id')
             ->select('journal_lines.ledger_account_id')
             ->selectRaw('SUM(journal_lines.debit) AS debits, SUM(journal_lines.credit) AS credits')
@@ -228,10 +227,9 @@ class FinancialStatements
     private function split(string $column, CarbonInterface $asOf): array
     {
         $perHolder = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
             ->where('journal_lines.kiln_id', $this->currentKiln->id())
             ->whereNotNull("journal_lines.{$column}")
-            ->where('journal_entries.entry_date', '<=', $asOf->format('Y-m-d'))
+            ->where('journal_lines.entry_date', '<=', $asOf->format('Y-m-d'))
             ->groupBy("journal_lines.{$column}")
             ->selectRaw('SUM(journal_lines.debit) - SUM(journal_lines.credit) AS net');
 

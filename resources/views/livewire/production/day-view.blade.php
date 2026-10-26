@@ -136,7 +136,13 @@
                             @endif
                         </x-ui.td>
                         <x-ui.td>
-                            <p class="font-medium text-stone-900">{{ $dispatch->sale->customer->displayName() }} · <a href="{{ route('sales.show', $dispatch->sale) }}" wire:navigate class="tabular text-brand-700 hover:underline" dir="ltr">{{ $dispatch->sale->number }}</a></p>
+                            <p class="font-medium text-stone-900">{{ $dispatch->sale->customer->displayName() }} ·
+                                @can(\App\Enums\Permission::SalesView->value)
+                                    <a href="{{ route('sales.show', $dispatch->sale) }}" wire:navigate class="tabular text-brand-700 hover:underline" dir="ltr">{{ $dispatch->sale->number }}</a>
+                                @else
+                                    <span class="tabular" dir="ltr">{{ $dispatch->sale->number }}</span>
+                                @endcan
+                            </p>
                             <p class="text-sm text-stone-600">
                                 @foreach ($dispatch->lines as $dl)
                                     @php($line = $dispatch->sale->lines->firstWhere('id', $dl->sale_line_id))

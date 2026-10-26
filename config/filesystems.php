@@ -33,9 +33,19 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Private files (backups among them) are never served by URL.
+            'serve' => false,
             'throw' => false,
             'report' => false,
+        ],
+
+        // Backups of the database and uploaded files (config/backup.php). Never served by URL.
+        'backups' => [
+            'driver' => 'local',
+            'root' => env('BACKUP_PATH', storage_path('app/backups')),
+            'serve' => false,
+            'throw' => true,
+            'report' => true,
         ],
 
         'public' => [

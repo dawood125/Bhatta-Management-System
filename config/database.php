@@ -62,6 +62,11 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            // Backups: a consistent dump without locking the tables while people work.
+            'dump' => [
+                'use_single_transaction',
+                'timeout' => 600,
+            ],
         ],
 
         'mariadb' => [

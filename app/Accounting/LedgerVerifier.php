@@ -57,6 +57,15 @@ class LedgerVerifier
             $problems[] = "Line #{$id}: kiln does not match its entry or account.";
         }
 
+        // 3b. Each line carries its entry's date (balances on a date are read from the lines).
+        $wrongDate = DB::table('journal_lines as l')
+            ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+            ->whereColumn('l.entry_date', '!=', 'e.entry_date')
+            ->pluck('l.id');
+        foreach ($wrongDate as $id) {
+            $problems[] = "Line #{$id}: its date does not match its entry's date.";
+        }
+
         // 4. Reversal links are consistent in both directions.
         $reversedWithoutReversal = DB::table('journal_entries as e')
             ->where('e.status', 'reversed')

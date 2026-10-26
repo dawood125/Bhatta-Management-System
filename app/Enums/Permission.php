@@ -40,6 +40,7 @@ enum Permission: string
     case SalesWriteOff = 'sales.write_off';
     case DaysClose = 'days.close';
     case DaysReopen = 'days.reopen';
+    case BackupsManage = 'backups.manage';
 
     public function label(): string
     {
@@ -76,6 +77,7 @@ enum Permission: string
             self::SalesWriteOff => __('Write off what customers cannot pay (bad debts)'),
             self::DaysClose => __('Count the cash and close the day'),
             self::DaysReopen => __('Reopen closed days and enter on them'),
+            self::BackupsManage => __('Make and download backups'),
         };
     }
 }

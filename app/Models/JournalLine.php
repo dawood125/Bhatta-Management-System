@@ -8,6 +8,7 @@ use App\Models\Concerns\BelongsToKiln;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * One debit or credit line of a journal entry. Immutable.
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $kiln_id
  * @property int $journal_entry_id
+ * @property Carbon $entry_date
  * @property int $ledger_account_id
  * @property int|null $party_id
  * @property int $line_no
@@ -39,6 +41,7 @@ class JournalLine extends Model
             'debit' => MoneyCast::class,
             'credit' => MoneyCast::class,
             'line_no' => 'integer',
+            'entry_date' => 'date',
         ];
     }
 

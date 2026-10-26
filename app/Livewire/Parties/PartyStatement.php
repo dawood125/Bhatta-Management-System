@@ -6,6 +6,7 @@ use App\Accounting\LedgerQueries;
 use App\Actions\Sales\WriteOffBalance;
 use App\Enums\PartyRole;
 use App\Enums\Permission;
+use App\Livewire\Concerns\PagesStatement;
 use App\Livewire\Concerns\RunsActions;
 use App\Models\JournalLine;
 use App\Models\Party;
@@ -27,7 +28,7 @@ use Livewire\Component;
  */
 class PartyStatement extends Component
 {
-    use RunsActions;
+    use PagesStatement, RunsActions;
 
     public Party $party;
 
@@ -54,6 +55,7 @@ class PartyStatement extends Component
 
     public function setRange(string $range): void
     {
+        $this->statementPage = '';
         [$this->from, $this->to] = match ($range) {
             'this_month' => [now()->startOfMonth()->format('Y-m-d'), now()->format('Y-m-d')],
             'last_month' => [now()->subMonthNoOverflow()->startOfMonth()->format('Y-m-d'), now()->subMonthNoOverflow()->endOfMonth()->format('Y-m-d')],
@@ -62,7 +64,7 @@ class PartyStatement extends Component
     }
 
     /**
-     * @return array{opening: Money, rows: list<array{line: JournalLine, debit: Money, credit: Money, balance: Money}>, closing: Money, total_debit: Money, total_credit: Money}|null
+     * @return array{opening: Money, brought_forward: Money, rows: list<array{line: JournalLine, debit: Money, credit: Money, balance: Money}>, closing: Money, total_debit: Money, total_credit: Money, page: int, pages: int, count: int}|null
      */
     #[Computed]
     public function statement(): ?array
@@ -78,6 +80,8 @@ class PartyStatement extends Component
             $this->party,
             Carbon::createFromFormat('Y-m-d', $from)->startOfDay(),
             Carbon::createFromFormat('Y-m-d', $to)->startOfDay(),
+            $this->statementPageNumber(),
+            $this->statementPerPage(),
         );
     }
 

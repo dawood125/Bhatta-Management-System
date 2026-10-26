@@ -4,10 +4,9 @@ namespace App\Sales;
 
 use App\Enums\JournalType;
 use App\Enums\PaymentStatus;
+use App\Enums\SaleStatus;
 use App\Models\JournalEntry;
 use App\Models\Sale;
-use App\Models\SaleDispatch;
-use App\Models\SaleReceipt;
 use App\Support\Kiln\CurrentKiln;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -38,31 +37,43 @@ class CustomerPayments
             return ['sales' => [], 'unapplied' => []];
         }
 
-        $sales = Sale::query()->whereIn('customer_id', $customerIds)->get(['id', 'customer_id', 'sale_date', 'journal_entry_id', 'credit_entry_id', 'receipt_entry_id', 'status']);
-        $carriage = SaleDispatch::query()->whereIn('sale_id', $sales->pluck('id'))->whereNotNull('carriage_entry_id')->pluck('sale_id', 'carriage_entry_id');
+        // Plain rows, not models: a busy kiln has thousands of sales per customer list.
+        $sales = DB::table('sales')
+            ->where('kiln_id', $this->currentKiln->id())
+            ->whereIn('customer_id', $customerIds)
+            ->orderBy('id')
+            ->get(['id', 'customer_id', 'sale_date', 'journal_entry_id', 'credit_entry_id', 'receipt_entry_id', 'status'])
+            ->map(fn (object $row) => [
+                'id' => (int) $row->id,
+                'customer' => (int) $row->customer_id,
+                'date' => substr((string) $row->sale_date, 0, 10),
+                'entry' => (int) $row->journal_entry_id,
+                'cancelled' => $row->status === SaleStatus::Cancelled->value,
+            ] + ['credit_entry' => $row->credit_entry_id !== null ? (int) $row->credit_entry_id : null, 'receipt_entry' => $row->receipt_entry_id !== null ? (int) $row->receipt_entry_id : null])
+            ->keyBy('id')
+            ->all();
+        $saleIds = array_keys($sales);
 
-        /** @var array<int, Sale> $saleOfEntry entry id => the sale it belongs to */
+        /** @var array<int, int> $saleOfEntry entry id => the sale it belongs to */
         $saleOfEntry = [];
-        foreach ($sales as $sale) {
-            $saleOfEntry[$sale->journal_entry_id] = $sale;
-            if ($sale->credit_entry_id !== null) {
-                $saleOfEntry[$sale->credit_entry_id] = $sale;
-            }
-        }
-        $byId = $sales->keyBy('id');
-        foreach ($carriage as $entryId => $saleId) {
-            $saleOfEntry[(int) $entryId] = $byId[(int) $saleId];
-        }
-
-        /** @var array<int, Sale> $receiptFor receipt entry id => the sale it was taken for */
+        /** @var array<int, int> $receiptFor receipt entry id => the sale it was taken for */
         $receiptFor = [];
-        foreach ($sales as $sale) {
-            if ($sale->receipt_entry_id !== null) {
-                $receiptFor[$sale->receipt_entry_id] = $sale;
+        foreach ($sales as $id => $sale) {
+            $saleOfEntry[$sale['entry']] = $id;
+            if ($sale['credit_entry'] !== null) {
+                $saleOfEntry[$sale['credit_entry']] = $id;
+            }
+            if ($sale['receipt_entry'] !== null) {
+                $receiptFor[$sale['receipt_entry']] = $id;
             }
         }
-        foreach (SaleReceipt::query()->whereIn('sale_id', $sales->pluck('id'))->pluck('sale_id', 'journal_entry_id') as $entryId => $saleId) {
-            $receiptFor[(int) $entryId] = $byId[(int) $saleId];
+        foreach (array_chunk($saleIds, 5000) as $chunk) {
+            foreach (DB::table('sale_dispatches')->whereIn('sale_id', $chunk)->whereNotNull('carriage_entry_id')->pluck('sale_id', 'carriage_entry_id') as $entryId => $saleId) {
+                $saleOfEntry[(int) $entryId] = (int) $saleId;
+            }
+            foreach (DB::table('sale_receipts')->whereIn('sale_id', $chunk)->pluck('sale_id', 'journal_entry_id') as $entryId => $saleId) {
+                $receiptFor[(int) $entryId] = (int) $saleId;
+            }
         }
 
         $lines = DB::table('journal_lines as l')
@@ -86,25 +97,26 @@ class CustomerPayments
 
         foreach ($lines as $line) {
             $customerId = (int) $line->party_id;
-            $sale = $saleOfEntry[(int) $line->journal_entry_id] ?? null;
+            $entryId = (int) $line->journal_entry_id;
+            $saleId = $saleOfEntry[$entryId] ?? null;
             $net = (int) $line->debit - (int) $line->credit;
 
             // Only the customer's own lines belong to the sale (a carriage entry also has the driver's line).
-            if ($sale !== null && $sale->customer_id === $customerId) {
-                $due[$sale->id] = ($due[$sale->id] ?? 0) + $net;
+            if ($saleId !== null && $sales[$saleId]['customer'] === $customerId) {
+                $due[$saleId] = ($due[$saleId] ?? 0) + $net;
 
                 continue;
             }
 
-            $for = $receiptFor[(int) $line->journal_entry_id] ?? null;
-            if ($for !== null && $for->customer_id === $customerId && $net < 0) {
-                $direct[$for->id] = ($direct[$for->id] ?? 0) - $net;
+            $for = $receiptFor[$entryId] ?? null;
+            if ($for !== null && $sales[$for]['customer'] === $customerId && $net < 0) {
+                $direct[$for] = ($direct[$for] ?? 0) - $net;
 
                 continue;
             }
 
             if ($net > 0) {
-                $charges[$customerId][] = ['date' => substr((string) $line->entry_date, 0, 10), 'order' => (int) $line->journal_entry_id, 'sale' => null, 'amount' => $net];
+                $charges[$customerId][] = ['date' => substr((string) $line->entry_date, 0, 10), 'order' => $entryId, 'sale' => null, 'amount' => $net];
             } else {
                 $pool[$customerId] += -$net;
             }
@@ -112,17 +124,17 @@ class CustomerPayments
 
         /** @var array<int, int> $paidDirect sale id => paisa paid by money received for it */
         $paidDirect = [];
-        foreach ($sales as $sale) {
-            $amount = $due[$sale->id] ?? 0;
+        foreach ($sales as $id => $sale) {
+            $amount = $due[$id] ?? 0;
 
             // Money received for this sale pays it first; the rest is the customer's to use elsewhere.
-            $paidDirect[$sale->id] = min(max($amount, 0), $direct[$sale->id] ?? 0);
-            $pool[$sale->customer_id] += ($direct[$sale->id] ?? 0) - $paidDirect[$sale->id];
+            $paidDirect[$id] = min(max($amount, 0), $direct[$id] ?? 0);
+            $pool[$sale['customer']] += ($direct[$id] ?? 0) - $paidDirect[$id];
 
-            if ($amount - $paidDirect[$sale->id] > 0) {
-                $charges[$sale->customer_id][] = ['date' => $sale->sale_date->format('Y-m-d'), 'order' => $sale->journal_entry_id, 'sale' => $sale->id, 'amount' => $amount - $paidDirect[$sale->id]];
+            if ($amount - $paidDirect[$id] > 0) {
+                $charges[$sale['customer']][] = ['date' => $sale['date'], 'order' => $sale['entry'], 'sale' => $id, 'amount' => $amount - $paidDirect[$id]];
             } elseif ($amount < 0) {
-                $pool[$sale->customer_id] += -$amount;
+                $pool[$sale['customer']] += -$amount;
             }
         }
 
@@ -142,16 +154,16 @@ class CustomerPayments
         }
 
         $out = [];
-        foreach ($sales as $sale) {
-            $amount = max(0, $due[$sale->id] ?? 0);
-            $paid = $paidDirect[$sale->id] + ($result[$sale->id] ?? 0);
+        foreach ($sales as $id => $sale) {
+            $amount = max(0, $due[$id] ?? 0);
+            $paid = $paidDirect[$id] + ($result[$id] ?? 0);
             $outstanding = $amount - $paid;
 
-            $out[$sale->id] = [
+            $out[$id] = [
                 'due' => Money::fromPaisa($amount),
                 'paid' => Money::fromPaisa($paid),
                 'outstanding' => Money::fromPaisa($outstanding),
-                'status' => $sale->isCancelled() ? null : match (true) {
+                'status' => $sale['cancelled'] ? null : match (true) {
                     $outstanding <= 0 => PaymentStatus::Paid,
                     $paid === 0 => PaymentStatus::Unpaid,
                     default => PaymentStatus::PartlyPaid,

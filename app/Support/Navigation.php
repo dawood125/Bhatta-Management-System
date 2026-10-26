@@ -53,6 +53,7 @@ class Navigation
                     ['label' => __('Kiln settings'), 'route' => 'settings.index', 'icon' => 'settings', 'active' => 'settings.*', 'permissions' => [Permission::KilnProfileManage, Permission::SettingsManage]],
                     ['label' => __('Users'), 'route' => 'users.index', 'icon' => 'users', 'active' => 'users.*', 'permissions' => [Permission::UsersView]],
                     ['label' => __('Activity log'), 'route' => 'activity.index', 'icon' => 'history', 'active' => 'activity.*', 'permissions' => [Permission::ActivityView]],
+                    ['label' => __('Backups'), 'route' => 'backups.index', 'icon' => 'database-backup', 'active' => 'backups.*', 'permissions' => [Permission::BackupsManage]],
                 ],
             ],
         ];
@@ -84,6 +85,7 @@ class Navigation
     {
         $tabs = [
             ['label' => __('Kiln profile'), 'route' => 'settings.kiln', 'icon' => 'factory', 'permissions' => [Permission::KilnProfileManage]],
+            ['label' => __('Email'), 'route' => 'settings.email', 'icon' => 'mail', 'permissions' => [Permission::KilnProfileManage]],
             ['label' => __('Products and grades'), 'route' => 'settings.products', 'icon' => 'brick-wall', 'permissions' => [Permission::SettingsManage]],
             ['label' => __('Production stages'), 'route' => 'settings.stages', 'icon' => 'flame', 'permissions' => [Permission::SettingsManage]],
             ['label' => __('Units'), 'route' => 'settings.units', 'icon' => 'ruler', 'permissions' => [Permission::SettingsManage]],

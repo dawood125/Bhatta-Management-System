@@ -33,10 +33,9 @@ class CashDay
 
         $opening = $this->ledger->balances($ledgerIds, $date->copy()->subDay());
         $day = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
             ->where('journal_lines.kiln_id', $this->currentKiln->id())
             ->whereIn('journal_lines.ledger_account_id', $ledgerIds)
-            ->where('journal_entries.entry_date', $date->format('Y-m-d'))
+            ->where('journal_lines.entry_date', $date->format('Y-m-d'))
             ->groupBy('journal_lines.ledger_account_id')
             ->select('journal_lines.ledger_account_id')
             ->selectRaw('SUM(journal_lines.debit) AS debits, SUM(journal_lines.credit) AS credits')

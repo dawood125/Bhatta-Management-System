@@ -80,7 +80,7 @@
 
             <tr class="bg-stone-50/60">
                 <x-ui.td colspan="5" class="font-medium text-stone-600">{{ __('Balance brought forward') }}</x-ui.td>
-                <x-ui.td align="end"><x-party-balance :amount="$statement['opening']" /></x-ui.td>
+                <x-ui.td align="end"><x-party-balance :amount="$statement['brought_forward']" /></x-ui.td>
             </tr>
 
             @forelse ($statement['rows'] as $row)
@@ -118,6 +118,7 @@
                 <x-ui.td align="end"><x-party-balance :amount="$statement['closing']" /></x-ui.td>
             </tr>
         </x-ui.table>
+        <x-ui.statement-pager :statement="$statement" />
 
         <p class="mt-3 hidden text-xs text-stone-500 print:block">{{ __('Printed on :date', ['date' => now()->format('d-m-Y g:i A')]) }}</p>
     @endif

@@ -135,6 +135,7 @@ class JournalPoster
                 foreach ($lines as $index => $line) {
                     JournalLine::query()->create([
                         'journal_entry_id' => $entry->id,
+                        'entry_date' => $date->format('Y-m-d'),
                         'ledger_account_id' => $line->account->id,
                         'party_id' => $line->party?->id,
                         'worker_id' => $line->worker?->id,

@@ -5,15 +5,14 @@ namespace App\Reports;
 use App\Enums\SaleStatus;
 use App\Models\Party;
 use App\Models\Product;
-use App\Models\Sale;
-use App\Models\SaleDispatch;
-use App\Models\SaleLine;
 use App\Sales\CustomerPayments;
-use App\Sales\SaleStock;
+use App\Support\Kiln\CurrentKiln;
 use App\Support\Money;
 use App\Support\Quantity;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Sales made in a period (by sale date, cancelled sales left out): by grade, by customer and by
@@ -23,7 +22,7 @@ use Illuminate\Support\Collection;
 class SalesSummary
 {
     public function __construct(
-        private readonly SaleStock $saleStock,
+        private readonly CurrentKiln $currentKiln,
         private readonly CustomerPayments $payments,
     ) {}
 
@@ -32,48 +31,70 @@ class SalesSummary
      */
     public function forPeriod(CarbonInterface $from, CarbonInterface $to): array
     {
-        $sales = Sale::query()
-            ->with(['customer', 'agent', 'lines.product.unit', 'creditEntry'])
-            ->where('status', '!=', SaleStatus::Cancelled->value)
-            ->whereBetween('sale_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
-            ->orderBy('sale_date')
-            ->get();
+        // Totals come from the database; only the payment of each sale is worked out here.
+        $kilnId = $this->currentKiln->id();
+        $range = [$from->format('Y-m-d'), $to->format('Y-m-d')];
+        $inPeriod = fn (Builder $query, string $sale = 's') => $query
+            ->where("{$sale}.kiln_id", $kilnId)
+            ->where("{$sale}.status", '!=', SaleStatus::Cancelled->value)
+            ->whereBetween("{$sale}.sale_date", $range);
 
-        $lines = $sales->flatMap(fn (Sale $sale) => $sale->lines);
-        $delivered = $this->saleStock->delivered($lines->pluck('id')->all());
-        $carriage = SaleDispatch::query()->whereIn('sale_id', $sales->pluck('id'))->whereNull('reversed_at')->get(['sale_id', 'carriage'])->groupBy('sale_id');
-        $states = $this->payments->forCustomers($sales->pluck('customer_id')->unique()->values()->all())['sales'];
+        $sales = $inPeriod(DB::table('sales as s'))->orderBy('s.sale_date')->get(['s.id', 's.customer_id', 's.agent_id', 's.total']);
 
-        $byGrade = $lines->groupBy('product_id')->map(fn (Collection $group) => [
-            'product' => $group->first()->product,
-            'ordered' => Quantity::fromMilli((int) $group->sum(fn (SaleLine $line) => $line->quantity->milli)),
-            'delivered' => Quantity::fromMilli((int) $group->sum(fn (SaleLine $line) => $delivered[$line->id] ?? 0)),
-            'amount' => Money::sum($group->map(fn (SaleLine $line) => $line->amount)),
-        ])->sortBy(fn (array $row) => [$row['product']->sort_order, $row['product']->name])->values()->all();
+        $ordered = $inPeriod(DB::table('sale_lines as l')->join('sales as s', 's.id', '=', 'l.sale_id'))
+            ->groupBy('l.product_id')
+            ->selectRaw('l.product_id, SUM(l.quantity) AS quantity, SUM(l.amount) AS amount')
+            ->get()->keyBy('product_id');
+        $delivered = $inPeriod(DB::table('sale_dispatch_lines as dl')
+            ->join('sale_dispatches as d', 'd.id', '=', 'dl.sale_dispatch_id')
+            ->join('sale_lines as l', 'l.id', '=', 'dl.sale_line_id')
+            ->join('sales as s', 's.id', '=', 'l.sale_id'))
+            ->whereNull('d.reversed_at')
+            ->groupBy('l.product_id')
+            ->selectRaw('l.product_id, SUM(dl.quantity) AS quantity')
+            ->pluck('quantity', 'product_id');
+        $carriage = (int) $inPeriod(DB::table('sale_dispatches as d')->join('sales as s', 's.id', '=', 'd.sale_id'))
+            ->whereNull('d.reversed_at')->sum('d.carriage');
+        $credits = (int) $inPeriod(DB::table('journal_entries as e')->join('sales as s', 's.credit_entry_id', '=', 'e.id'))->sum('e.total');
 
-        $billed = fn (Sale $sale) => $states[$sale->id]['due'] ?? $sale->total;
+        $states = $this->payments->forCustomers($sales->pluck('customer_id')->map(fn ($id) => (int) $id)->unique()->values()->all())['sales'];
+        $billed = fn (object $sale): int => isset($states[(int) $sale->id]) ? $states[(int) $sale->id]['due']->paisa : (int) $sale->total;
+        $outstanding = fn (object $sale): int => isset($states[(int) $sale->id]) ? $states[(int) $sale->id]['outstanding']->paisa : 0;
+        $paid = fn (object $sale): int => isset($states[(int) $sale->id]) ? $states[(int) $sale->id]['paid']->paisa : 0;
 
-        $byCustomer = $sales->groupBy('customer_id')->map(fn (Collection $group) => [
-            'party' => $group->first()->customer,
+        $products = Product::query()->with('unit')->whereKey($ordered->keys()->all())->get();
+        $byGrade = $products
+            ->sortBy(fn (Product $product) => [$product->sort_order, $product->name])
+            ->map(fn (Product $product) => [
+                'product' => $product,
+                'ordered' => Quantity::fromMilli((int) $ordered[$product->id]->quantity),
+                'delivered' => Quantity::fromMilli((int) ($delivered[$product->id] ?? 0)),
+                'amount' => Money::fromPaisa((int) $ordered[$product->id]->amount),
+            ])->values()->all();
+
+        $parties = Party::query()->whereKey($sales->pluck('customer_id')->merge($sales->pluck('agent_id'))->filter()->unique()->all())->get()->keyBy('id');
+
+        $byCustomer = $sales->groupBy('customer_id')->map(fn (Collection $group, $customerId) => [
+            'party' => $parties[(int) $customerId],
             'count' => $group->count(),
-            'billed' => Money::sum($group->map($billed)),
-            'outstanding' => Money::sum($group->map(fn (Sale $sale) => $states[$sale->id]['outstanding'] ?? Money::zero())),
+            'billed' => Money::fromPaisa((int) $group->sum($billed)),
+            'outstanding' => Money::fromPaisa((int) $group->sum($outstanding)),
         ])->sortByDesc(fn (array $row) => $row['billed']->paisa)->values()->all();
 
-        $byAgent = $sales->groupBy(fn (Sale $sale) => (int) $sale->agent_id)->map(fn (Collection $group) => [
-            'agent' => $group->first()->agent,
+        $byAgent = $sales->groupBy(fn (object $sale) => (int) $sale->agent_id)->map(fn (Collection $group, $agentId) => [
+            'agent' => $agentId ? ($parties[(int) $agentId] ?? null) : null,
             'count' => $group->count(),
-            'billed' => Money::sum($group->map($billed)),
+            'billed' => Money::fromPaisa((int) $group->sum($billed)),
         ])->sortByDesc(fn (array $row) => $row['billed']->paisa)->values()->all();
 
         return [
             'count' => $sales->count(),
-            'bricks' => Money::sum($sales->map(fn (Sale $sale) => $sale->total)),
-            'carriage' => Money::sum($carriage->flatten()->map(fn (SaleDispatch $dispatch) => $dispatch->carriage)),
-            'credits' => Money::sum($sales->map(fn (Sale $sale) => $sale->creditEntry->total ?? Money::zero())),
-            'billed' => Money::sum($sales->map($billed)),
-            'paid' => Money::sum($sales->map(fn (Sale $sale) => $states[$sale->id]['paid'] ?? Money::zero())),
-            'outstanding' => Money::sum($sales->map(fn (Sale $sale) => $states[$sale->id]['outstanding'] ?? Money::zero())),
+            'bricks' => Money::fromPaisa((int) $sales->sum('total')),
+            'carriage' => Money::fromPaisa($carriage),
+            'credits' => Money::fromPaisa($credits),
+            'billed' => Money::fromPaisa((int) $sales->sum($billed)),
+            'paid' => Money::fromPaisa((int) $sales->sum($paid)),
+            'outstanding' => Money::fromPaisa((int) $sales->sum($outstanding)),
             'by_grade' => $byGrade,
             'by_customer' => $byCustomer,
             'by_agent' => $byAgent,

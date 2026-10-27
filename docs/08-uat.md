@@ -21,6 +21,8 @@ Each stage ends with a short list of problems (see "Reporting a problem"). I fix
 
 ## Stage 1: the partner's test script
 
+For every feature in detail, step by step with a worked example and the exact numbers to expect, use **[09-testing-guide.md](09-testing-guide.md)**. The checklist below is the short version.
+
 Work through the scenarios in order, on a laptop **and** on a phone, once in English and once in Urdu. For each one write **OK**, or describe the problem.
 
 ### A. First day: setting up the kiln (as the owner)

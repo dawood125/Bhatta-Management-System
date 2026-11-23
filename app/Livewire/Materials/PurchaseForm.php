@@ -213,6 +213,10 @@ class PurchaseForm extends Component
                 continue;
             }
 
+            if (($line['size'] ?? '') === 'big' && $material?->bricks_per_big_unit !== null && $material->bricks_per_unit !== null) {
+                $quantity = $material->stockFromBig($quantity);
+            }
+
             $cost = ($amounts[$index] ?? Money::zero())->add($shares[$index]);
             $result[$index] = $amounts[$index] !== null ? app(MaterialStock::class)->averageCost(['quantity' => $quantity, 'value' => $cost]) : null;
         }
@@ -294,10 +298,10 @@ class PurchaseForm extends Component
     }
 
     /**
-     * @return array{key: string, material_id: string, quantity: string, rate: string}
+     * @return array{key: string, material_id: string, quantity: string, rate: string, size: string}
      */
     private function blankLine(): array
     {
-        return ['key' => (string) Str::uuid(), 'material_id' => '', 'quantity' => '', 'rate' => ''];
+        return ['key' => (string) Str::uuid(), 'material_id' => '', 'quantity' => '', 'rate' => '', 'size' => 'normal'];
     }
 }

@@ -20,7 +20,7 @@ use Livewire\Component;
  * for sale by grade (with what open sales still have to collect). The production dialogs open
  * from here.
  *
- * @property-read array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, saleable: array<int, Quantity>} $levels Livewire computed property
+ * @property-read array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, awaiting_refire: Quantity, saleable: array<int, Quantity>} $levels Livewire computed property
  * @property-read array<int, int> $reserved Livewire computed property
  */
 class StockOverview extends Component
@@ -31,7 +31,7 @@ class StockOverview extends Component
     }
 
     /**
-     * @return array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, saleable: array<int, Quantity>}
+     * @return array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, awaiting_refire: Quantity, saleable: array<int, Quantity>}
      */
     #[Computed]
     public function levels(): array

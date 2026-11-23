@@ -23,12 +23,12 @@ class SaveMaterial
     use ValidatesSettings;
 
     /**
-     * @param  array<string, mixed>  $input  name, name_ur, unit_id, kind, sort_order
+     * @param  array<string, mixed>  $input  name, name_ur, unit_id, kind, sort_order, bricks_per_unit, bricks_per_big_unit
      */
     public function handle(User $actor, ?Material $material, array $input): Material
     {
         $this->authorizeSettings($actor);
-        $input = $this->clean($input);
+        $input = $this->clean($input, ['bricks_per_unit', 'bricks_per_big_unit']);
         $kilnId = $this->kilnId();
 
         $data = Validator::make($input, [
@@ -38,7 +38,21 @@ class SaveMaterial
             'unit_id' => ['required', 'integer', Rule::exists('units', 'id')->where('kiln_id', $kilnId)->where('is_active', true)],
             'kind' => ['required', Rule::enum(MaterialKind::class)],
             'sort_order' => ['required', 'integer', 'between:0,9999'],
+            'bricks_per_unit' => ['nullable', 'integer', 'between:1,10000000'],
+            'bricks_per_big_unit' => ['nullable', 'integer', 'between:1,10000000'],
+        ], [], [
+            'bricks_per_unit' => __('bricks from one unit'),
+            'bricks_per_big_unit' => __('bricks from one big trolley'),
         ])->validate();
+
+        // Only raw materials go into the bricks at Pathai.
+        $isRaw = $data['kind'] === MaterialKind::RawMaterial->value;
+        $data['bricks_per_unit'] = $isRaw && filled($data['bricks_per_unit'] ?? null) ? (int) $data['bricks_per_unit'] : null;
+        $data['bricks_per_big_unit'] = $isRaw && filled($data['bricks_per_big_unit'] ?? null) ? (int) $data['bricks_per_big_unit'] : null;
+
+        if ($data['bricks_per_big_unit'] !== null && $data['bricks_per_unit'] === null) {
+            throw ValidationException::withMessages(['bricks_per_unit' => __('Enter the bricks from one normal trolley first.')]);
+        }
 
         if ($material !== null && (int) $data['unit_id'] !== $material->unit_id
             && MaterialMovement::query()->where('material_id', $material->id)->exists()) {

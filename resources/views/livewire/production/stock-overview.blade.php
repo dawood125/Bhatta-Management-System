@@ -8,8 +8,8 @@
     <x-production.actions class="mb-5" />
 
     {{-- The stages in order, left to right (right to left in Urdu) --}}
-    <ol class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        @foreach ([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading, StageKind::Saleable] as $index => $stage)
+    <ol class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        @foreach ([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading, StageKind::AwaitingRefire, StageKind::Saleable] as $index => $stage)
             @php($quantity = $stage === StageKind::Saleable ? $bricksForSale : $this->levels[$stage->value])
             <li>
                 <x-ui.card class="relative h-full py-4!">

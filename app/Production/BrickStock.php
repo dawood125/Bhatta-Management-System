@@ -36,9 +36,9 @@ class BrickStock
     }
 
     /**
-     * Stock of every slot: the three ungraded stages, and saleable stock per product.
+     * Stock of every slot: the ungraded stages, and saleable stock per product.
      *
-     * @return array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, saleable: array<int, Quantity>}
+     * @return array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, awaiting_refire: Quantity, saleable: array<int, Quantity>}
      */
     public function levels(?CarbonInterface $asOf = null): array
     {
@@ -46,6 +46,7 @@ class BrickStock
             StageKind::Raw->value => Quantity::zero(),
             StageKind::InFiring->value => Quantity::zero(),
             StageKind::FiredAwaitingUnloading->value => Quantity::zero(),
+            StageKind::AwaitingRefire->value => Quantity::zero(),
             StageKind::Saleable->value => [],
         ];
 
@@ -127,7 +128,7 @@ class BrickStock
         }
 
         $slots = [];
-        foreach ([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading] as $stage) {
+        foreach ([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading, StageKind::AwaitingRefire] as $stage) {
             $slots[] = $this->slot($stage, null, $opening[$stage->value], $closing[$stage->value], $moves[$stage->value] ?? []);
         }
 

@@ -26,15 +26,24 @@
                         <div class="rounded-[var(--radius-control)] bg-stone-50 px-3 py-2 text-sm ring-1 ring-stone-200 sm:col-span-2">
                             <span class="text-stone-600">{{ __('Accepted, into ":stage"', ['stage' => $stageName(StageKind::Raw)]) }}:</span>
                             <span class="tabular font-semibold text-stone-900" dir="ltr">{{ $accepted?->format(0) ?? '—' }}</span>
+                            @foreach ($this->pathaiUse() as $use)
+                                <p class="text-xs text-stone-500">{{ __('Uses :material', ['material' => $use['name']]) }}: <span class="tabular font-medium text-stone-700" dir="ltr">{{ $use['quantity'] }} {{ $use['unit'] }}</span></p>
+                            @endforeach
                         </div>
                         <x-ui.field :label="__('Team or family')" for="production-team" error="form.team" :hint="__('Optional')">
                             <x-ui.input id="production-team" wire:model="form.team" />
                         </x-ui.field>
                     @elseif ($type === ProductionEntryKind::Loading)
-                        <x-ui.field :label="__('Bricks loaded into the kiln')" for="production-quantity" error="form.quantity" required>
+                        <x-ui.field :label="__('Bricks loaded into the kiln')" for="production-quantity" error="form.quantity" :required="! $this->levels['awaiting_refire']->isPositive()">
                             <x-ui.input id="production-quantity" wire:model.live.debounce.400ms="form.quantity" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
                             <p class="text-xs text-stone-500">{{ __('Available in ":stage"', ['stage' => $stageName(StageKind::Raw)]) }}: <span class="tabular font-medium text-stone-700" dir="ltr">{{ $this->levels['raw']->format(0) }}</span></p>
                         </x-ui.field>
+                        @if ($this->levels['awaiting_refire']->isPositive())
+                            <x-ui.field :label="__('Bricks going back in (re-fire)')" for="production-refire" error="form.refire" :hint="__('The Kamyaar is not paid again for these.')">
+                                <x-ui.input id="production-refire" wire:model="form.refire" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
+                                <p class="text-xs text-stone-500">{{ __('Available in ":stage"', ['stage' => $stageName(StageKind::AwaitingRefire)]) }}: <span class="tabular font-medium text-stone-700" dir="ltr">{{ $this->levels['awaiting_refire']->format(0) }}</span></p>
+                            </x-ui.field>
+                        @endif
                     @elseif ($type === ProductionEntryKind::Firing)
                         <x-ui.field :label="__('Bricks fired, now awaiting Nakaasi')" for="production-quantity" error="form.quantity" :hint="__('Leave empty if you only record fuel today.')">
                             <x-ui.input id="production-quantity" wire:model="form.quantity" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
@@ -145,6 +154,9 @@
                                 <span class="ms-2 text-red-600">{{ __('More than are awaiting Nakaasi.') }}</span>
                             @endif
                         </div>
+                        <x-ui.field :label="__('Badly fired, send back to Julai')" for="production-refire" error="form.refire" :hint="__('They go into the next round. The Nakaasi wage is paid when they come out in a grade.')" class="mt-3">
+                            <x-ui.input id="production-refire" wire:model="form.refire" inputmode="numeric" dir="ltr" class="tabular" autocomplete="off" />
+                        </x-ui.field>
                     </div>
                 @endif
 

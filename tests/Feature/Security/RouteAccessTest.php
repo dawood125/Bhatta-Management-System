@@ -43,6 +43,7 @@ function routePermissions(): array
         'sales.create' => Permission::SalesRecord,
         'sales.deliveries' => Permission::SalesView,
         'sales.drivers' => Permission::SalesView,
+        'sales.driver-settlement' => Permission::SalesView,
         'sales.emails' => Permission::SalesView,
         'sales.show' => Permission::SalesView,
         'sales.invoice' => Permission::SalesView,

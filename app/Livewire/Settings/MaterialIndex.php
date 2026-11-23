@@ -50,6 +50,8 @@ class MaterialIndex extends MasterDataIndex
             'name_ur' => '',
             'kind' => MaterialKind::RawMaterial->value,
             'unit_id' => '',
+            'bricks_per_unit' => '',
+            'bricks_per_big_unit' => '',
             'sort_order' => (string) (((int) Material::query()->max('sort_order')) + 10),
         ];
     }
@@ -61,6 +63,8 @@ class MaterialIndex extends MasterDataIndex
             'name_ur' => $record->name_ur,
             'kind' => $record->kind->value,
             'unit_id' => (string) $record->unit_id,
+            'bricks_per_unit' => (string) ($record->bricks_per_unit ?? ''),
+            'bricks_per_big_unit' => (string) ($record->bricks_per_big_unit ?? ''),
             'sort_order' => (string) $record->sort_order,
         ];
     }

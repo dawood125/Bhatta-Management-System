@@ -45,6 +45,14 @@
                 <x-ui.select id="material-unit" wire:model="form.unit_id" :placeholder="__('Choose a unit')" :options="$this->unitOptions" />
             </x-ui.field>
 
+            <x-ui.field :label="__('Bricks from one unit')" for="material-bricks" error="form.bricks_per_unit" :hint="__('Raw materials only. When set, Pathai takes this material out of stock for the accepted bricks.')">
+                <x-ui.input id="material-bricks" type="number" min="1" step="1" wire:model="form.bricks_per_unit" dir="ltr" />
+            </x-ui.field>
+
+            <x-ui.field :label="__('Bricks from one big trolley')" for="material-bricks-big" error="form.bricks_per_big_unit" :hint="__('Optional. Lets you buy it by the big trolley.')">
+                <x-ui.input id="material-bricks-big" type="number" min="1" step="1" wire:model="form.bricks_per_big_unit" dir="ltr" />
+            </x-ui.field>
+
             <x-ui.field :label="__('Display order')" for="material-order" error="form.sort_order" required :hint="__('Smaller numbers appear first in lists.')">
                 <x-ui.input id="material-order" type="number" min="0" max="9999" step="1" wire:model="form.sort_order" dir="ltr" />
             </x-ui.field>

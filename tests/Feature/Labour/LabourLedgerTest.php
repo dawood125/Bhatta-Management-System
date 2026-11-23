@@ -477,7 +477,7 @@ describe('permissions and records', function () {
     it('seeds the default categories once, without rates', function () {
         app(KilnDefaults::class)->seed($this->kiln);
 
-        expect(LabourCategory::query()->orderBy('sort_order')->pluck('code')->all())->toBe(['pathai', 'kamyaar', 'nakaasi', 'barai', 'mistri', 'daily'])
+        expect(LabourCategory::query()->orderBy('sort_order')->pluck('code')->all())->toBe(['pathai', 'kamyaar', 'nakaasi', 'barai', 'mistri', 'daily', 'machine_operator'])
             ->and(labourCategory('kamyaar')->activity?->value)->toBe('loading')
             ->and(labourCategory('barai')->basis->value)->toBe('per_month')
             ->and(LabourRate::query()->count())->toBe(0);

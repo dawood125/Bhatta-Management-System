@@ -70,8 +70,8 @@
             <x-ui.card class="mt-4">
                 <h2 class="text-sm font-semibold text-stone-900">{{ __('Bricks in stock (not valued)') }}</h2>
                 <p class="mb-3 text-xs text-stone-500">{{ __('Their cost is already counted in the profit as materials, fuel and labour were used.') }}</p>
-                <dl class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                    @foreach ([[__('Raw bricks'), $bricks['raw']], [__('In the kiln'), $bricks['in_firing']], [__('Awaiting Nakaasi'), $bricks['awaiting']], [__('Ready for sale'), $bricks['saleable']]] as [$label, $quantity])
+                <dl class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
+                    @foreach ([[__('Raw bricks'), $bricks['raw']], [__('In the kiln'), $bricks['in_firing']], [__('Awaiting Nakaasi'), $bricks['awaiting']], [__('Waiting to re-fire'), $bricks['refire']], [__('Ready for sale'), $bricks['saleable']]] as [$label, $quantity])
                         <div>
                             <dt class="text-xs text-stone-500">{{ $label }}</dt>
                             <dd class="tabular font-semibold text-stone-900">{{ $quantity->format(0) }}</dd>

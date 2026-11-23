@@ -24,7 +24,7 @@ class JournalPresenter
             JournalType::MaterialPurchase => 'info',
             JournalType::MaterialAdjustment, JournalType::WorkerDeduction => 'warning',
             JournalType::Wages => 'info',
-            JournalType::WorkerAdvance, JournalType::WagePayment, JournalType::Carriage => 'neutral',
+            JournalType::WorkerAdvance, JournalType::WagePayment, JournalType::Carriage, JournalType::TrolleyCost => 'neutral',
             JournalType::Sale => 'success',
             JournalType::SaleCredit => 'warning',
             JournalType::BadDebt, JournalType::Reversal => 'danger',
@@ -85,6 +85,7 @@ class JournalPresenter
             JournalType::WagePayment => __('Wages paid: :names', ['names' => $debits]),
             JournalType::Sale => __('Sale to :names', ['names' => $debits]),
             JournalType::Carriage => __('Carriage of :driver, charged to :customer', ['driver' => $credits, 'customer' => $debits]),
+            JournalType::TrolleyCost => __('Trolley cost of :driver', ['driver' => $debits]),
         };
     }
 

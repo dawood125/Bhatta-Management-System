@@ -39,7 +39,7 @@ use Livewire\Component;
  * and stock adjustments. Placed on every production page; opened with the browser event
  * "open-production-form" ({kind}). After saving it announces "production-recorded".
  *
- * @property-read array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, saleable: array<int, Quantity>} $levels Livewire computed property
+ * @property-read array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, awaiting_refire: Quantity, saleable: array<int, Quantity>} $levels Livewire computed property
  * @property-read Collection<int, Product> $gradeProducts Livewire computed property
  * @property-read Collection<int, Material> $fuelMaterials Livewire computed property
  * @property-read Collection<string, ProductionStage> $stages Livewire computed property
@@ -72,12 +72,13 @@ class EntryForms extends Component
 
         $this->form = match ($type) {
             ProductionEntryKind::Pathai => ['entry_date' => $today, 'worker_id' => '', 'team' => '', 'made' => '', 'rejected' => '', 'notes' => ''],
-            ProductionEntryKind::Loading => ['entry_date' => $today, 'worker_id' => '', 'quantity' => '', 'notes' => ''],
+            ProductionEntryKind::Loading => ['entry_date' => $today, 'worker_id' => '', 'quantity' => '', 'refire' => '', 'notes' => ''],
             ProductionEntryKind::Firing => ['entry_date' => $today, 'quantity' => '', 'notes' => '', 'fuel' => []],
             ProductionEntryKind::Nakaasi => [
                 'entry_date' => $today,
                 'worker_id' => '',
                 'notes' => '',
+                'refire' => '',
                 'lines' => $this->gradeProducts->map(fn (Product $p) => ['product_id' => (string) $p->id, 'quantity' => ''])->values()->all(),
             ],
             ProductionEntryKind::Adjustment => ['entry_date' => $today, 'stage' => StageKind::Saleable->value, 'product_id' => '', 'direction' => RecordBrickAdjustment::REMOVE, 'quantity' => '', 'reason' => ''],
@@ -149,12 +150,29 @@ class EntryForms extends Component
     }
 
     /**
-     * @return array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, saleable: array<int, Quantity>}
+     * @return array{raw: Quantity, in_firing: Quantity, fired_awaiting_unloading: Quantity, awaiting_refire: Quantity, saleable: array<int, Quantity>}
      */
     #[Computed]
     public function levels(): array
     {
         return app(BrickStock::class)->levels();
+    }
+
+    /**
+     * What the accepted bricks typed so far will take out of material stock.
+     *
+     * @return list<array{name: string, quantity: string, unit: string}>
+     */
+    public function pathaiUse(): array
+    {
+        $accepted = RecordPathai::preview((string) ($this->form['made'] ?? ''), (string) ($this->form['rejected'] ?? ''));
+        if ($accepted === null) {
+            return [];
+        }
+
+        return RecordPathai::bricksMaterials()
+            ->map(fn (Material $m) => ['name' => $m->displayName(), 'quantity' => $m->usedFor($accepted)->format(3), 'unit' => $m->unit->symbol ?? $m->unit->displayName()])
+            ->values()->all();
     }
 
     /**

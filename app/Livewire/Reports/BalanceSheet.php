@@ -73,6 +73,7 @@ class BalanceSheet extends Component
             'raw' => $levels['raw'],
             'in_firing' => $levels['in_firing'],
             'awaiting' => $levels['fired_awaiting_unloading'],
+            'refire' => $levels['awaiting_refire'],
             'saleable' => Quantity::fromMilli($saleable),
         ];
     }

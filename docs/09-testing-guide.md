@@ -22,7 +22,8 @@ Every number in the worked example has been checked against the real system by a
 8. [Part H — Urdu, phone and printing](#part-h--urdu-phone-and-printing)
 9. [Part I — Safety and administration](#part-i--safety-and-administration)
 10. [Part J — Try to break it](#part-j--try-to-break-it)
-11. [Reporting problems](#reporting-problems)
+11. [Part K — The client's changes](#part-k--the-clients-changes-november-2026)
+12. [Reporting problems](#reporting-problems)
 12. [Summary of expected results](#summary-of-expected-results)
 
 ---
@@ -453,6 +454,28 @@ Good testers try to make mistakes on purpose. All of these must be **refused wit
 - **Double-click** "Save" quickly on any form: the entry must be saved **once only**.
 - Open the same sale in two tabs and record deliveries in both: never more than ordered.
 - Change the address bar to a number that does not exist (e.g. `/sales/99999`): "Page not found" in English and Urdu, nothing else.
+
+---
+
+## Part K — The client's changes (November 2026)
+
+Do this part **after** Parts A–J, because it changes how Pathai works from then on.
+
+**K1. Soil and Kassu settings.** Kiln settings → Materials → edit **Soil**: unit *Trolley* (the unit can only change while soil has no stock entries), *Bricks from one unit* **2000**, *Bricks from one big trolley* **2600**. Edit **Kassu**: *Bricks from one unit* **17778**.
+
+**K2. Buy them.** Materials → New purchase: Soil, size **Big trolley**, quantity **10**, rate **3000**; Kassu, quantity **5**, rate **4000**. Expect: total **Rs 50,000**, soil **13.00 trolleys** ("Bought as 10.00 big trolleys"), Kassu 5.00.
+
+**K3. Pathai takes them out.** Pathai: made **4,000**, rejected **200**. The form shows *Uses Soil 1.900 trolley* and *Uses Kassu 0.214 trolley*. After saving, Materials shows soil **11.10** and Kassu **4.79** (rounded on screen).
+
+**K4. Not enough soil.** Try a Pathai of **100,000** bricks. It must be refused, naming the soil, with nothing saved.
+
+**K5. Reverse.** Reverse the K3 Pathai entry. Soil returns to 13.00 and Kassu to 5.00. Enter it again for K6.
+
+**K6. Re-firing.** Load and fire the 3,800 bricks, naming a Kamyaar. At Nakaasi enter Awal **3,500** and *Badly fired, send back to Julai* **300**, naming a Nakaasi worker. Expect: *Waiting to re-fire* **300**, and the Nakaasi worker paid for **3,500**. Load with *Bricks going back in* **300** and raw bricks empty: the Kamyaar earns nothing more. Fire 300, then Nakaasi Awal 300: the worker is paid for **300**.
+
+**K7. Machine operator.** Labour → Categories and rates: set **Machine operator** to **1,500** per day. Add a worker in that category and record **8** days. Expect wages of **Rs 12,000**.
+
+**K8. Driver settlement.** Sales → Driver settlement: add a trolley with its driver. Record two trips with carriage **3,000** each, then *Add diesel or maintenance*: diesel **1,500**, maintenance **500**. Expect that driver's month to show carriage **6,000**, diesel **1,500**, maintenance **500**, and **4,000** more owed than before. **Pay** opens a voucher for the balance; after saving, the balance is **0**. Then add a maintenance cost larger than what the driver is owed: the balance shows *Driver owes the kiln* and carries to the next month.
 
 ---
 

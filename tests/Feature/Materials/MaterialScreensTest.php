@@ -175,7 +175,7 @@ describe('purchases list and page', function () {
             ->assertSee('Material purchase')
             ->assertSee('Matti Supplier')
             ->assertSee('Excavator: Two hours')
-            ->assertSee('Rs 55.00 per cft')
+            ->assertSee('Rs 55.00 per trolley')
             ->call('confirmReverse', $purchase->journal_entry_id)
             ->set('reverseForm.reason', 'Wrong rate')
             ->call('reverse')

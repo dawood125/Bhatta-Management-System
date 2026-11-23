@@ -58,8 +58,9 @@ class RecordMaterialUsage
      * of a firing entry recorded by someone allowed to record production.
      *
      * @param  array<string, mixed>  $input  usage_date, notes, lines[] = {material_id, quantity, memo}
+     * @param  int|null  $decimals  Places to accept instead of the unit's (worked-out quantities are finer)
      */
-    public function record(User $actor, array $input, string $idempotencyKey): MaterialUsage
+    public function record(User $actor, array $input, string $idempotencyKey, ?int $decimals = null): MaterialUsage
     {
         if (($existing = $this->findByKey($idempotencyKey)) !== null) {
             return $existing;
@@ -95,7 +96,7 @@ class RecordMaterialUsage
         $date = Carbon::createFromFormat('Y-m-d', $data['usage_date'])->startOfDay();
         $rows = array_values($data['lines']);
 
-        return DB::transaction(function () use ($actor, $data, $date, $rows, $idempotencyKey): MaterialUsage {
+        return DB::transaction(function () use ($actor, $data, $date, $rows, $idempotencyKey, $decimals): MaterialUsage {
             $materials = $this->lockMaterials(array_map(fn ($row) => (int) $row['material_id'], $rows));
             $levels = $this->stock->levels($materials->keys()->all());
 
@@ -105,7 +106,7 @@ class RecordMaterialUsage
                 $material = $materials[(int) $row['material_id']];
 
                 try {
-                    $quantity = Quantity::fromInput((string) $row['quantity'], $material->unit->decimals);
+                    $quantity = Quantity::fromInput((string) $row['quantity'], $decimals ?? $material->unit->decimals);
                 } catch (InvalidArgumentException) {
                     $errors["lines.{$index}.quantity"] = $material->unit->decimals === 0
                         ? __('Enter a whole number.')

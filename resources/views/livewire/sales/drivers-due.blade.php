@@ -1,5 +1,5 @@
 <div>
-    <x-ui.page-header :title="__('Sales')" :description="__('Carriage the customers paid is owed to the drivers. Pay them at the end of the day with a payment voucher.')" />
+    <x-ui.page-header :title="__('Sales')" :description="__('Carriage the customers paid is owed to the drivers. Use Driver settlement at the end of the month to take out diesel and maintenance and pay the rest.')" />
 
     <x-sales.tabs active="drivers" />
 

@@ -7,6 +7,7 @@
             'sales' => ['sales.index', __('Sales')],
             'deliveries' => ['sales.deliveries', __('Deliveries')],
             'drivers' => ['sales.drivers', __('Drivers due')],
+            'settlement' => ['sales.driver-settlement', __('Driver settlement')],
             'emails' => ['sales.emails', __('Invoice emails')],
         ] as $key => [$route, $label])
             <a href="{{ route($route) }}" wire:navigate @class([

@@ -69,7 +69,11 @@
                             <td class="py-2.5 pe-3">
                                 <a href="{{ route('materials.show', $line->material) }}" wire:navigate class="font-medium text-stone-900 hover:underline print:no-underline">{{ $line->material->displayName() }}</a>
                             </td>
-                            <td class="py-2.5 pe-3 text-end whitespace-nowrap"><span class="tabular" dir="ltr">{{ $line->quantity->format($line->material->unit->decimals) }}</span> <span class="text-xs text-stone-500">{{ $unit }}</span></td>
+                            <td class="py-2.5 pe-3 text-end whitespace-nowrap"><span class="tabular" dir="ltr">{{ $line->quantity->format($line->material->unit->decimals) }}</span> <span class="text-xs text-stone-500">{{ $unit }}</span>
+                                @if ($line->big_quantity)
+                                    <span class="block text-xs text-stone-500">{{ __('Bought as :quantity big trolleys', ['quantity' => $line->big_quantity->format(2)]) }}</span>
+                                @endif
+                            </td>
                             <td class="py-2.5 pe-3 text-end whitespace-nowrap"><x-ui.money :amount="$line->rate" :currency="false" /></td>
                             <td class="py-2.5 pe-3 text-end"><x-ui.money :amount="$line->amount" :currency="false" /></td>
                             <td class="py-2.5 pe-3 text-end"><x-ui.money :amount="$line->charges" :currency="false" :muted="true" /></td>

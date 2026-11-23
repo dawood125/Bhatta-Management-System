@@ -20,6 +20,8 @@
 | [modules/M9-reports.md](modules/M9-reports.md) | M9 report: dashboard, reports page, profit and loss, balance sheet, day close with lock, sales and production summaries, cost per 1,000 bricks, who owes us |
 | [07-deployment.md](07-deployment.md) | Putting the system on a server: hosting, install, HTTPS, worker and scheduler, Google Drive copies, updating, restoring backups |
 | [08-uat.md](08-uat.md) | User acceptance testing: the partner's test script, the owner review, reporting problems |
+| [09-testing-guide.md](09-testing-guide.md) | Complete testing guide for the partner: every feature step by step with a worked example and the exact results to expect |
+| [modules/M12-client-changes.md](modules/M12-client-changes.md) | M12 report: soil and Kassu at Pathai, re-firing, machine operator, trolleys and monthly driver settlement |
 | [modules/M11-hardening.md](modules/M11-hardening.md) | M11 report: permissions review, security, backups with Google Drive copies and restore drill, email settings in the app, speed with years of data, setup check, deployment and UAT |
 
 Source documents: `../BUSINESS_REQUIREMENTS.md`, `../AI_AGENT_IMPLEMENTATION_PLAN.md`, `../Refrence Project/`.

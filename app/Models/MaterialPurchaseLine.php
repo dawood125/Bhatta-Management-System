@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $line_no
  * @property int $material_id
  * @property Quantity $quantity
+ * @property Quantity|null $big_quantity
  * @property Money $rate
  * @property Money $amount
  * @property Money $charges
@@ -37,6 +38,7 @@ class MaterialPurchaseLine extends Model
     {
         return [
             'quantity' => QuantityCast::class,
+            'big_quantity' => QuantityCast::class,
             'rate' => MoneyCast::class,
             'amount' => MoneyCast::class,
             'charges' => MoneyCast::class,

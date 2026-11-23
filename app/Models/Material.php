@@ -7,6 +7,7 @@ use App\Materials\MaterialStock;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\BelongsToKiln;
 use App\Models\Concerns\HasLocalizedName;
+use App\Support\Quantity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,12 +26,14 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $name_ur
  * @property int $unit_id
  * @property MaterialKind $kind
+ * @property int|null $bricks_per_unit
+ * @property int|null $bricks_per_big_unit
  * @property int|null $usage_account_id
  * @property bool $is_active
  * @property int $sort_order
  * @property-read Unit $unit
  */
-#[Fillable(['code', 'name', 'name_ur', 'unit_id', 'kind', 'is_active', 'sort_order'])]
+#[Fillable(['code', 'name', 'name_ur', 'unit_id', 'kind', 'bricks_per_unit', 'bricks_per_big_unit', 'is_active', 'sort_order'])]
 class Material extends Model implements Archivable
 {
     use BelongsToKiln, HasLocalizedName, LogsActivity;
@@ -39,6 +42,8 @@ class Material extends Model implements Archivable
     {
         return [
             'kind' => MaterialKind::class,
+            'bricks_per_unit' => 'integer',
+            'bricks_per_big_unit' => 'integer',
             'is_active' => 'boolean',
             'sort_order' => 'integer',
         ];
@@ -72,6 +77,22 @@ class Material extends Model implements Archivable
     public function decimals(): int
     {
         return $this->unit->decimals;
+    }
+
+    /** How much of this material the given bricks use, to a thousandth of its unit. */
+    public function usedFor(Quantity $bricks): Quantity
+    {
+        $perUnit = (int) $this->bricks_per_unit;
+
+        return $perUnit > 0 ? Quantity::fromMilli(intdiv(2 * $bricks->milli + $perUnit, 2 * $perUnit)) : Quantity::zero();
+    }
+
+    /** Stock units that the given number of big trolleys adds. */
+    public function stockFromBig(Quantity $big): Quantity
+    {
+        $perUnit = (int) $this->bricks_per_unit;
+
+        return Quantity::fromMilli(intdiv(2 * $big->milli * (int) $this->bricks_per_big_unit + $perUnit, 2 * $perUnit));
     }
 
     public function archiveBlocker(): ?string

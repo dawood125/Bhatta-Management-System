@@ -44,12 +44,12 @@ class ReverseMaterialEntry
     {
         $this->authorizeSettings($actor, Permission::TransactionsReverse);
 
-        // Fuel recorded with a firing entry is reversed together with that entry.
-        $firing = ProductionEntry::query()
+        // Material recorded with a production entry is reversed together with that entry.
+        $production = ProductionEntry::query()
             ->whereIn('material_usage_id', MaterialUsage::query()->where('journal_entry_id', $entry->id)->select('id'))
             ->first();
-        if ($firing !== null) {
-            throw ValidationException::withMessages(['reason' => __('This fuel was recorded with firing entry :number. Reverse that entry instead.', ['number' => $firing->number])]);
+        if ($production !== null) {
+            throw ValidationException::withMessages(['reason' => __('This material was recorded with production entry :number. Reverse that entry instead.', ['number' => $production->number])]);
         }
 
         return $this->reverse($actor, $entry, $input, $idempotencyKey);

@@ -22,7 +22,9 @@ use Illuminate\Validation\ValidationException;
  * Nakaasi (entry NK-…): fired bricks unloaded and sorted. Each grade or brick by-product (Awal,
  * Doom, Khingar, Tooty, ...) moves from "fired, awaiting Nakaasi" into saleable stock; their total
  * is the number of bricks unloaded. By-products counted in another unit (e.g. Rora by the
- * trolley) are added to saleable stock alongside, without counting as bricks.
+ * trolley) are added to saleable stock alongside, without counting as bricks. Badly fired bricks
+ * go to "waiting to re-fire" instead: they are not counted as unloaded or paid until they come out
+ * in a grade, so each brick earns its Nakaasi wage exactly once.
  */
 class RecordNakaasi
 {
@@ -31,7 +33,7 @@ class RecordNakaasi
     public const MAX_LINES = 20;
 
     /**
-     * @param  array<string, mixed>  $input  entry_date, notes, lines[] = {product_id, quantity}
+     * @param  array<string, mixed>  $input  entry_date, notes, refire, lines[] = {product_id, quantity}
      */
     public function handle(User $actor, array $input, string $idempotencyKey): ProductionEntry
     {
@@ -42,12 +44,14 @@ class RecordNakaasi
         }
 
         $lines = is_array($input['lines'] ?? null) ? array_values(array_map(fn ($line) => is_array($line) ? $this->clean($line, []) : $line, $input['lines'])) : [];
-        $input = $this->clean(array_diff_key($input, ['lines' => true]), ['notes']) + ['lines' => $lines];
+        $input = $this->clean(array_diff_key($input, ['lines' => true]), ['notes', 'refire']) + ['lines' => $lines];
 
         $data = Validator::make($input, [
             'entry_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:255'],
-            'lines' => ['required', 'array', 'min:1', 'max:'.self::MAX_LINES],
+            'refire' => ['nullable'],
+            // A Nakaasi may only send bricks back, with no grade coming out.
+            'lines' => [...(filled($input['refire'] ?? null) ? [] : ['required', 'min:1']), 'array', 'max:'.self::MAX_LINES],
             'lines.*' => ['required', 'array'],
             'lines.*.product_id' => ['required', 'integer', 'distinct', Rule::exists('products', 'id')->where('kiln_id', $this->kilnId())->where('is_active', true)
                 ->whereIn('kind', [ProductKind::FiredGrade->value, ProductKind::ByProduct->value])],
@@ -81,15 +85,17 @@ class RecordNakaasi
             }
         }
 
-        if (! $unloaded->isPositive()) {
+        $refire = $this->bricks($data['refire'] ?? '', 'refire', allowZero: true);
+
+        if (! $unloaded->isPositive() && ! $refire->isPositive()) {
             throw ValidationException::withMessages(['lines' => __('Enter the bricks unloaded by grade; by-products in other units come with them.')]);
         }
 
         $date = Carbon::createFromFormat('Y-m-d', $data['entry_date'])->startOfDay();
         $worker = $this->workerFrom($input['worker_id'] ?? null);
 
-        return $this->posting($idempotencyKey, ProductionEntryKind::Nakaasi, function () use ($actor, $data, $date, $parsed, $unloaded, $worker, $idempotencyKey): ProductionEntry {
-            $this->assertStageAllows(StageKind::FiredAwaitingUnloading, null, $date, Quantity::zero()->subtract($unloaded), 'lines');
+        return $this->posting($idempotencyKey, ProductionEntryKind::Nakaasi, function () use ($actor, $data, $date, $parsed, $unloaded, $refire, $worker, $idempotencyKey): ProductionEntry {
+            $this->assertStageAllows(StageKind::FiredAwaitingUnloading, null, $date, Quantity::zero()->subtract($unloaded->add($refire)), 'lines');
 
             $entry = $this->createEntry(ProductionEntryKind::Nakaasi, $date, ['quantity' => $unloaded, 'notes' => $data['notes'], 'worker_id' => $worker?->id], $idempotencyKey, $actor);
 
@@ -97,7 +103,11 @@ class RecordNakaasi
                 $this->move($entry, $line['brick'] ? StageKind::FiredAwaitingUnloading : null, StageKind::Saleable, $line['product']->id, $line['quantity'], $actor);
             }
 
-            // Unloading is paid for the bricks unloaded (grades and broken ones).
+            if ($refire->isPositive()) {
+                $this->move($entry, StageKind::FiredAwaitingUnloading, StageKind::AwaitingRefire, null, $refire, $actor);
+            }
+
+            // Unloading is paid for the bricks unloaded (grades and broken ones), not re-fires.
             $this->payWorker($entry, $worker, $unloaded, $actor);
 
             return $entry;

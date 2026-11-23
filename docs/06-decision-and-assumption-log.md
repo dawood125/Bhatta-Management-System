@@ -105,6 +105,10 @@
 | D-099 | 2026-10-24 | `kiln:check` reports whether an installation is set up right (settings, PHP, database, files, queue worker and scheduler heartbeats, email, backups, ledger); `kiln:benchmark` times every main page as the owner | Agent (M11) | Final |
 | D-100 | 2026-10-24 | UAT in stages: the partner tests on a test server with made-up data, then the owner reviews it with you, then (later) a trial run with real data alongside the paper register (docs/08-uat.md) | User | Final |
 | D-101 | 2026-10-24 | Email (invoice emails and backup alerts) is set up in the app's settings by each customer, not in `.env`, because the system will be given to several kilns. Off-server copies of the backups go to Google Drive. No domain name yet. Deployment: the user runs each step of docs/07-deployment.md and shows the output | User | Final |
+| D-102 | 2026-11-24 | Raw materials can state the bricks one unit makes; Pathai then takes them out of stock for the accepted bricks (rejected raw bricks are reused) at average cost, refused when stock is short, and returned when the entry is reversed. Soil is counted in normal trolleys; a big trolley is priced as bought and adds its share (2,600 ÷ 2,000) | Client | Final |
+| D-103 | 2026-11-24 | New fifth stage "Waiting to re-fire" (changes D-026). Nakaasi can send bricks there and loading takes them back. Kamyaar is paid for raw bricks only; Nakaasi wages and the unloaded count apply when bricks come out in a grade, so each is counted once | Client; timing of the wage by Agent | Final unless the client objects |
+| D-104 | 2026-11-24 | Trolleys belong to the kiln (replaces A-006). The driver keeps carriage less diesel and maintenance, paid monthly, so carriage stays pass-through (D-013). Trolley costs (TC-…) debit the driver. A shortfall carries forward as owed by the driver | Client; shortfall by Agent | Shortfall to confirm |
+| D-105 | 2026-11-24 | Machine operator is a daily-wage category; machine-made Pathai pays no piece wage | Client | Final |
 
 ## Assumptions (to be confirmed)
 

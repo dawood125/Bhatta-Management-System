@@ -2,14 +2,19 @@
 
 namespace App\Actions\Production;
 
+use App\Actions\Materials\RecordMaterialUsage;
 use App\Actions\Production\Concerns\PostsProduction;
 use App\Actions\Settings\Concerns\ValidatesSettings;
+use App\Enums\MaterialKind;
 use App\Enums\Permission;
 use App\Enums\ProductionEntryKind;
 use App\Enums\StageKind;
+use App\Models\Material;
+use App\Models\MaterialUsage;
 use App\Models\ProductionEntry;
 use App\Models\User;
 use App\Support\Quantity;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -17,11 +22,14 @@ use InvalidArgumentException;
 
 /**
  * Pathai: raw bricks made by a team on a day (entry PT-…). Rejected bricks are recorded but
- * never enter stock; the accepted ones go into the raw stage.
+ * never enter stock (their soil is mixed in again, so it is not used up); the accepted ones go
+ * into the raw stage and take their soil, Kassu and any other raw material out of stock.
  */
 class RecordPathai
 {
     use PostsProduction, ValidatesSettings;
+
+    public function __construct(private readonly RecordMaterialUsage $recordUsage) {}
 
     /**
      * @param  array<string, mixed>  $input  entry_date, team, made, rejected, notes
@@ -61,6 +69,8 @@ class RecordPathai
         $worker = $this->workerFrom($input['worker_id'] ?? null);
 
         return $this->posting($idempotencyKey, ProductionEntryKind::Pathai, function () use ($actor, $data, $date, $made, $rejected, $accepted, $worker, $idempotencyKey): ProductionEntry {
+            $usage = $this->useMaterials($actor, $date, $accepted, $data['notes'], $idempotencyKey);
+
             $entry = $this->createEntry(ProductionEntryKind::Pathai, $date, [
                 'team' => $data['team'],
                 'worker_id' => $worker?->id,
@@ -68,6 +78,7 @@ class RecordPathai
                 'rejected' => $rejected,
                 'quantity' => $accepted,
                 'notes' => $data['notes'],
+                'material_usage_id' => $usage?->id,
             ], $idempotencyKey, $actor);
 
             if ($accepted->isPositive()) {
@@ -79,6 +90,47 @@ class RecordPathai
 
             return $entry;
         });
+    }
+
+    /**
+     * The active raw materials that go into every brick.
+     *
+     * @return Collection<int, Material>
+     */
+    public static function bricksMaterials(): Collection
+    {
+        return Material::query()->with('unit')
+            ->where('is_active', true)
+            ->where('kind', MaterialKind::RawMaterial)
+            ->whereNotNull('bricks_per_unit')
+            ->orderBy('sort_order')
+            ->get();
+    }
+
+    /** Take the materials of these bricks out of stock; their errors show on the "made" field. */
+    private function useMaterials(User $actor, Carbon $date, Quantity $accepted, ?string $notes, string $idempotencyKey): ?MaterialUsage
+    {
+        $lines = [];
+        foreach (self::bricksMaterials() as $material) {
+            $quantity = $material->usedFor($accepted);
+            if ($quantity->isPositive()) {
+                $lines[] = ['material_id' => $material->id, 'quantity' => $quantity->toDecimal(), 'memo' => null];
+            }
+        }
+
+        if ($lines === []) {
+            return null;
+        }
+
+        try {
+            return $this->recordUsage->record($actor, [
+                'usage_date' => $date->format('Y-m-d'),
+                'notes' => $notes,
+                'lines' => $lines,
+            ], substr(trim($idempotencyKey), 0, 58).':mats', 3);
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages(['made' => array_merge(...array_values($e->errors()))]);
+        }
     }
 
     /** Accepted bricks for a made / rejected pair typed in a form; null while not valid yet. */

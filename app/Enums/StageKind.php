@@ -15,6 +15,7 @@ enum StageKind: string
     case Raw = 'raw';
     case InFiring = 'in_firing';
     case FiredAwaitingUnloading = 'fired_awaiting_unloading';
+    case AwaitingRefire = 'awaiting_refire';
     case Saleable = 'saleable';
 
     /** Default English name (kilns can rename). */
@@ -24,6 +25,7 @@ enum StageKind: string
             self::Raw => 'Raw bricks (Pathai)',
             self::InFiring => 'In the kiln (Julai)',
             self::FiredAwaitingUnloading => 'Fired, awaiting Nakaasi',
+            self::AwaitingRefire => 'Waiting to re-fire',
             self::Saleable => 'Ready for sale',
         };
     }
@@ -35,6 +37,7 @@ enum StageKind: string
             self::Raw => 'کچی اینٹ (پتھائی)',
             self::InFiring => 'بھٹے میں (جلائی)',
             self::FiredAwaitingUnloading => 'پکی، نکاسی باقی',
+            self::AwaitingRefire => 'دوبارہ جلائی کے منتظر',
             self::Saleable => 'فروخت کے لیے تیار',
         };
     }
@@ -46,6 +49,7 @@ enum StageKind: string
             self::Raw => __('Accepted raw bricks after Pathai, drying and waiting to go into the kiln.'),
             self::InFiring => __('Bricks placed in the kiln and being fired.'),
             self::FiredAwaitingUnloading => __('Firing is complete but the bricks are not unloaded yet. They cannot be sold.'),
+            self::AwaitingRefire => __('Badly fired at Nakaasi. They go back into the kiln with the next round.'),
             self::Saleable => __('Unloaded and sorted by grade. Only these bricks can be sold.'),
         };
     }
@@ -56,7 +60,8 @@ enum StageKind: string
             self::Raw => 1,
             self::InFiring => 2,
             self::FiredAwaitingUnloading => 3,
-            self::Saleable => 4,
+            self::AwaitingRefire => 4,
+            self::Saleable => 5,
         };
     }
 }

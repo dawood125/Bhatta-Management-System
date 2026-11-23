@@ -20,6 +20,15 @@ Tags:
 - **[OPS]** operational
 - **[UI]** cosmetic
 
+## Answers received (2026-11-24)
+
+| ID | Answer | Resulting decision |
+|---|---|---|
+| Q-10 | Soil is bought by the trolley, about Rs 3,000: big = about 2,600 bricks, normal = about 2,000. Kassu is mixed with soil at Pathai, Rs 4,000 a trolley, 20–25 trolleys per 4 lakh bricks | D-102 |
+| Q-14 | Rejected raw bricks are reused | D-102 |
+| Q-21, Q-20 | Kamyaar and Nakaasi are not paid again for re-fired bricks; on machine days only the operator is paid, Rs 1,500 a day, 8 days a month | D-103, D-105 |
+| Q-27 | Trolleys belong to the bhatta; the driver gets the carriage less diesel and maintenance at the end of the month | D-104 |
+
 ## A. Needed now (they affect the overall design)
 
 | ID | Question | Why it matters | Proposed default |

@@ -89,7 +89,7 @@ class DashboardData
                 'unloaded' => $day['unloaded'],
                 'delivered' => Quantity::fromMilli((int) array_sum(array_map(fn (array $d) => $d['delivered']->milli, $day['days']))),
                 'raw' => $levels['raw'],
-                'in_kiln' => $levels['in_firing']->add($levels['fired_awaiting_unloading']),
+                'in_kiln' => $levels['in_firing']->add($levels['fired_awaiting_unloading'])->add($levels['awaiting_refire']),
                 'ready' => Quantity::fromMilli($ready),
                 'free' => Quantity::fromMilli($ready - $held),
             ];

@@ -96,6 +96,13 @@
                             @error("form.lines.$i.material_id")
                                 <p class="text-sm text-red-600">{{ $message }}</p>
                             @enderror
+                            @if ($material?->bricks_per_big_unit)
+                                <label for="line-{{ $i }}-size" class="text-xs font-medium text-stone-500">{{ __('Trolley size') }}</label>
+                                <x-ui.select id="line-{{ $i }}-size" wire:model.live="form.lines.{{ $i }}.size" :options="['normal' => __('Normal trolley (:bricks bricks)', ['bricks' => number_format($material->bricks_per_unit)]), 'big' => __('Big trolley (:bricks bricks)', ['bricks' => number_format($material->bricks_per_big_unit)])]" />
+                                @error("form.lines.$i.size")
+                                    <p class="text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            @endif
                         </div>
                         <div class="space-y-1">
                             <label for="line-{{ $i }}-quantity" class="text-xs font-medium text-stone-500 lg:sr-only">{{ __('Quantity') }}</label>

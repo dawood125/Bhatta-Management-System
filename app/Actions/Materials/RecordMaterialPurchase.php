@@ -54,7 +54,7 @@ class RecordMaterialPurchase
 
     /**
      * @param  array<string, mixed>  $input  purchase_date, payment, supplier_id, account_id, reference, notes,
-     *                                       lines[] = {material_id, quantity, rate},
+     *                                       lines[] = {material_id, quantity, rate, size (optional: big)},
      *                                       charges[] = {kind, description, amount, payee, party_id, account_id}
      */
     public function handle(User $actor, array $input, string $idempotencyKey): MaterialPurchase
@@ -139,6 +139,7 @@ class RecordMaterialPurchase
                     'line_no' => $index + 1,
                     'material_id' => $line['material']->id,
                     'quantity' => $line['quantity'],
+                    'big_quantity' => $line['big_quantity'],
                     'rate' => $line['rate'],
                     'amount' => $line['amount'],
                     'charges' => $allocated[$index],
@@ -229,7 +230,7 @@ class RecordMaterialPurchase
             return array_values(array_map(fn ($row) => is_array($row) ? $this->clean($row, $optional) : $row, $rows));
         };
 
-        $lines = $cleanList($input['lines'] ?? null, []);
+        $lines = $cleanList($input['lines'] ?? null, ['size']);
         $charges = $cleanList($input['charges'] ?? [], ['description', 'party_id', 'account_id']);
         $input = $this->clean(array_diff_key($input, ['lines' => true, 'charges' => true]), ['supplier_id', 'account_id', 'reference', 'notes']);
 
@@ -275,6 +276,7 @@ class RecordMaterialPurchase
             'lines.*.material_id' => ['required', 'integer', 'distinct', Rule::exists('materials', 'id')->where('kiln_id', $kilnId)->where('is_active', true)],
             'lines.*.quantity' => ['required'],
             'lines.*.rate' => ['required', new MoneyAmount],
+            'lines.*.size' => ['nullable', Rule::in(['normal', 'big'])],
             'charges' => ['present', 'array', 'max:'.self::MAX_CHARGES],
             'charges.*' => ['required', 'array'],
             'charges.*.kind' => ['required', Rule::enum(PurchaseChargeKind::class)],
@@ -314,7 +316,7 @@ class RecordMaterialPurchase
      *
      * @param  list<array<string, mixed>>  $rows
      * @param  Collection<int, Material>  $materials
-     * @return list<array{material: Material, quantity: Quantity, rate: Money, amount: Money}>
+     * @return list<array{material: Material, quantity: Quantity, big_quantity: Quantity|null, rate: Money, amount: Money}>
      */
     private function priceLines(array $rows, Collection $materials): array
     {
@@ -357,7 +359,19 @@ class RecordMaterialPurchase
                 continue;
             }
 
-            $lines[] = ['material' => $material, 'quantity' => $quantity, 'rate' => $rate, 'amount' => $amount];
+            // Bought by the big trolley: priced per big trolley, counted in stock as normal ones.
+            $big = null;
+            if (($row['size'] ?? null) === 'big') {
+                if ($material->bricks_per_big_unit === null || $material->bricks_per_unit === null) {
+                    $errors["lines.{$index}.size"] = __('Set the bricks from one big trolley for this material first.');
+
+                    continue;
+                }
+                $big = $quantity;
+                $quantity = $material->stockFromBig($big);
+            }
+
+            $lines[] = ['material' => $material, 'quantity' => $quantity, 'big_quantity' => $big, 'rate' => $rate, 'amount' => $amount];
         }
 
         if ($errors !== []) {

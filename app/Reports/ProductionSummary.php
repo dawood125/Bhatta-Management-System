@@ -52,7 +52,7 @@ class ProductionSummary
         }
 
         $slots = [];
-        foreach ([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading] as $stage) {
+        foreach ([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading, StageKind::AwaitingRefire] as $stage) {
             $slots[] = $this->slot($stage, null, $opening[$stage->value], $closing[$stage->value], $moves[$stage->value] ?? []);
         }
         $productIds = array_unique([...array_keys($opening[StageKind::Saleable->value]), ...array_keys($closing[StageKind::Saleable->value])]);
@@ -130,6 +130,7 @@ class ProductionSummary
             ->where('e.kind', ProductionEntryKind::Nakaasi->value)
             ->whereNull('e.reversed_at')
             ->whereNull('m.reversal_of_id')
+            ->whereNotNull('m.product_id') // bricks sent back to re-fire have no grade yet
             ->whereBetween('e.entry_date', $range)
             ->groupBy('m.product_id')
             ->selectRaw('m.product_id, SUM(m.quantity) AS quantity')

@@ -47,7 +47,7 @@ it('gives a new kiln the default units, grades, stages and expense categories', 
         expect(Product::query()->where('code', 'kachi')->sole()->is_saleable)->toBeFalse();
 
         expect(ProductionStage::query()->orderBy('sort_order')->get()->map(fn ($s) => $s->kind)->all())
-            ->toBe([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading, StageKind::Saleable]);
+            ->toBe([StageKind::Raw, StageKind::InFiring, StageKind::FiredAwaitingUnloading, StageKind::AwaitingRefire, StageKind::Saleable]);
     });
 });
 

@@ -46,6 +46,7 @@ use App\Livewire\Reports\SalesReport;
 use App\Livewire\Reports\TrialBalance;
 use App\Livewire\Sales\DispatchIndex;
 use App\Livewire\Sales\DriversDue;
+use App\Livewire\Sales\DriverSettlement;
 use App\Livewire\Sales\EmailLogIndex;
 use App\Livewire\Sales\SaleForm;
 use App\Livewire\Sales\SaleIndex;
@@ -87,6 +88,7 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
         Route::livewire('/new', SaleForm::class)->name('create');
         Route::livewire('/deliveries', DispatchIndex::class)->name('deliveries');
         Route::livewire('/drivers', DriversDue::class)->name('drivers');
+        Route::livewire('/driver-settlement', DriverSettlement::class)->name('driver-settlement');
         Route::livewire('/emails', EmailLogIndex::class)->name('emails');
         Route::livewire('/{sale}', SaleShow::class)->whereNumber('sale')->name('show');
         Route::get('/{sale}/invoice', SaleInvoiceController::class)->whereNumber('sale')->middleware('throttle:pdf')->name('invoice');

@@ -61,13 +61,13 @@ class KilnDefaults
     ];
 
     /**
-     * Provisional units until the owner answers Q-10 and Q-12 (soil "per foot" is taken as cubic
-     * feet; Kassu, Tuka and waste by the trolley; Bora by the bag). All editable per kiln.
+     * Soil and Kassu are bought by the trolley (client, 2026-11-24); Tuka and waste by the trolley
+     * and Bora by the bag stay provisional (Q-12). All editable per kiln.
      *
      * @var list<array{code: string, name: string, name_ur: string, kind: MaterialKind, unit: string}>
      */
     public const MATERIALS = [
-        ['code' => 'soil', 'name' => 'Soil (Matti)', 'name_ur' => 'مٹی', 'kind' => MaterialKind::RawMaterial, 'unit' => 'cft'],
+        ['code' => 'soil', 'name' => 'Soil (Matti)', 'name_ur' => 'مٹی', 'kind' => MaterialKind::RawMaterial, 'unit' => 'trolley'],
         ['code' => 'kassu', 'name' => 'Kassu', 'name_ur' => 'کسو', 'kind' => MaterialKind::RawMaterial, 'unit' => 'trolley'],
         ['code' => 'coal', 'name' => 'Coal (Kola)', 'name_ur' => 'کوئلہ', 'kind' => MaterialKind::Fuel, 'unit' => 'ton'],
         ['code' => 'bora', 'name' => 'Bora', 'name_ur' => 'بورا', 'kind' => MaterialKind::Fuel, 'unit' => 'bag'],
@@ -89,6 +89,7 @@ class KilnDefaults
         ['code' => 'barai', 'name' => 'Barai', 'name_ur' => 'بارائی', 'basis' => PayBasis::PerMonth, 'activity' => null],
         ['code' => 'mistri', 'name' => 'Mistri (firing team)', 'name_ur' => 'مستری (جلائی ٹیم)', 'basis' => PayBasis::LumpSum, 'activity' => null],
         ['code' => 'daily', 'name' => 'Daily labour', 'name_ur' => 'دیہاڑی دار', 'basis' => PayBasis::PerDay, 'activity' => null],
+        ['code' => 'machine_operator', 'name' => 'Machine operator', 'name_ur' => 'مشین آپریٹر', 'basis' => PayBasis::PerDay, 'activity' => null],
     ];
 
     public function __construct(

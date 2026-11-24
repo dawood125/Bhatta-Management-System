@@ -118,12 +118,14 @@ php artisan key:generate --force
 ```bash
 composer install --no-dev --optimize-autoloader --no-interaction
 npm ci --no-audit --no-fund && npm run build
-php artisan migrate --force
-php artisan storage:link
-php artisan permissions:sync
-php artisan kiln:install
-php artisan optimize
+sudo -u www-data php artisan migrate --force
+sudo -u www-data php artisan storage:link
+sudo -u www-data php artisan permissions:sync
+sudo -u www-data php artisan kiln:install
+sudo -u www-data php artisan optimize
 ```
+
+**Run artisan as `www-data`** (the site's own user), here and later. Files that artisan makes as another user, such as compiled pages, caches and backup folders, cannot be updated by the site afterwards: pages then fail with "touch(): Utime failed" and nightly backups fail with "Unable to create a directory". `deploy/deploy.sh` already does this.
 
 `kiln:install` asks for the kiln's name and the owner's name, username and password. Never run `php artisan db:seed` on the server: it is blocked there, because it would load demo data.
 
@@ -153,14 +155,14 @@ sudo cp deploy/cron-bhatta /etc/cron.d/bhatta && sudo chmod 644 /etc/cron.d/bhat
 ## 9. Check, then make the first backup
 
 ```bash
-php artisan backup:run
-php artisan kiln:backup-drill
+sudo -u www-data php artisan backup:run
+sudo -u www-data php artisan kiln:backup-drill
 ```
 
 Wait five minutes (for the first heartbeats of the worker and scheduler), then:
 
 ```bash
-php artisan kiln:check
+sudo -u www-data php artisan kiln:check
 ```
 
 Every line should say **ok**. A line saying **check** works but should be looked at; **fix** means something will not work. Then open the address in a browser, log in as the owner and open **Backups**.

@@ -43,6 +43,15 @@ return [
         'backups' => [
             'driver' => 'local',
             'root' => env('BACKUP_PATH', storage_path('app/backups')),
+            // Folders open to the group (and the web user's ACL), files never to others. Flysystem's
+            // default makes new folders 0700, which locked the scheduler's www-data out of a folder
+            // first made by the deploy user, so nightly backups failed.
+            'visibility' => 'private',
+            'directory_visibility' => 'public',
+            'permissions' => [
+                'file' => ['public' => 0660, 'private' => 0660],
+                'dir' => ['public' => 0770, 'private' => 0770],
+            ],
             'serve' => false,
             'throw' => true,
             'report' => true,

@@ -9,7 +9,9 @@ use App\Livewire\Backups\BackupIndex;
 use App\Models\Activity;
 use App\Models\BackupRun;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -175,4 +177,18 @@ describe('restoring', function () {
 
         expect($differences)->toContain('Table migrations: '.DB::table('migrations')->count().' rows live, '.(DB::table('migrations')->count() - 1).' in the copy.');
     })->skip(fn () => ! drillDatabaseAvailable(), 'needs the gbricks_restore database');
+});
+
+it('makes backup folders the web user can use, and keeps backup files from others', function () {
+    $root = sys_get_temp_dir().'/bhatta-perm-'.Str::random(8);
+    config(['filesystems.disks.backups.root' => $root]);
+    Storage::forgetDisk('backups');
+
+    Storage::disk('backups')->put('bhatta-manager/test.zip', 'x');
+
+    expect(fileperms($root.'/bhatta-manager') & 0777)->toBe(0770)
+        ->and(fileperms($root.'/bhatta-manager/test.zip') & 0777)->toBe(0660);
+
+    File::deleteDirectory($root);
+    Storage::forgetDisk('backups');
 });

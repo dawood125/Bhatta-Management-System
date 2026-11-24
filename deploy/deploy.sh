@@ -26,6 +26,13 @@ on_error() {
 }
 trap on_error ERR
 
+# Checked before anything changes: artisan must be able to read the settings as the web user.
+if ! sudo -u "$WEB_USER" test -r .env; then
+    echo "$WEB_USER cannot read .env. Fix it with:  sudo chgrp $WEB_USER .env && chmod 640 .env"
+    trap - ERR
+    exit 1
+fi
+
 echo "== Backing up the database"
 artisan backup:run --only-db --no-interaction
 

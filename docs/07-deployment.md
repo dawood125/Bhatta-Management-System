@@ -101,7 +101,7 @@ The two `setfacl` lines let both the web server and the deploy user write logs, 
 
 ```bash
 cp .env.production.example .env
-chmod 640 .env
+sudo chgrp www-data .env && chmod 640 .env     # readable by the site, nobody else
 nano .env
 ```
 

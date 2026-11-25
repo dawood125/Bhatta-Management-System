@@ -48,6 +48,7 @@
                     <x-ui.th align="end">{{ __('Advances') }}</x-ui.th>
                     <x-ui.th align="end">{{ __('Deductions') }}</x-ui.th>
                     <x-ui.th align="end">{{ __('Payable') }}</x-ui.th>
+                    <x-ui.th align="end" class="min-w-48">{{ __('Take back from advance') }}</x-ui.th>
                     <x-ui.th align="end" class="min-w-40">{{ __('Pay now') }}</x-ui.th>
                 </x-slot:head>
 
@@ -71,6 +72,29 @@
                         <x-ui.td align="end"><x-ui.money :amount="$row['summary']['deductions']" :currency="false" muted /></x-ui.td>
                         <x-ui.td align="end"><x-worker-balance :amount="$row['summary']['payable']" /></x-ui.td>
                         <x-ui.td align="end">
+                            @if ($row['advance']->isPositive())
+                                <label for="take-{{ $id }}" class="sr-only">{{ __('Advance to take back from :name', ['name' => $row['worker']->displayName()]) }}</label>
+                                <x-ui.input id="take-{{ $id }}" wire:model.live.debounce.500ms="takeBack.{{ $id }}" inputmode="decimal" dir="ltr" :suffix="__('Rs')" :disabled="! $included" autocomplete="off" />
+                                <div class="mt-1 flex justify-end gap-1">
+                                    @foreach (['all' => __('All'), 'half' => __('Half'), 'none' => __('None')] as $how => $label)
+                                        <button type="button" wire:click="setTakeBack({{ $id }}, '{{ $how }}')" @disabled(! $included) class="rounded-full px-2 py-0.5 text-xs font-medium text-stone-600 ring-1 ring-stone-300 hover:bg-stone-100 disabled:opacity-50">{{ $label }}</button>
+                                    @endforeach
+                                </div>
+                                @php($taken = preg_match('/^\d{1,13}(\.\d{1,2})?$/', trim($takeBack[$id] ?? '')) ? \App\Support\Money::fromRupees(trim($takeBack[$id])) : null)
+                                <p class="mt-1 text-xs text-stone-500">{{ __('Wages due') }}: <x-ui.money :amount="$row['wages']" /></p>
+                                <p class="text-xs text-stone-500">{{ __('Advance') }}: <x-ui.money :amount="$row['advance']" />
+                                    @if ($taken && ! $taken->greaterThan($row['advance']))
+                                        · {{ __('Left') }}: <x-ui.money :amount="$row['advance']->subtract($taken)" class="font-medium text-stone-700" />
+                                    @endif
+                                </p>
+                                @error('takeBack.'.$id)
+                                    <p class="mt-1 text-start text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            @else
+                                <span class="text-stone-400">—</span>
+                            @endif
+                        </x-ui.td>
+                        <x-ui.td align="end">
                             <label for="pay-{{ $id }}" class="sr-only">{{ __('Pay :name now', ['name' => $row['worker']->displayName()]) }}</label>
                             <x-ui.input id="pay-{{ $id }}" wire:model.live.debounce.500ms="pay.{{ $id }}" inputmode="decimal" dir="ltr" :suffix="__('Rs')" :disabled="! $included" autocomplete="off" />
                             @error('pay.'.$id)
@@ -79,7 +103,7 @@
                         </x-ui.td>
                     </tr>
                 @empty
-                    <tr><td colspan="8"><x-ui.empty-state icon="hard-hat" :title="__('No active workers')" :description="__('Add workers first, or choose another category.')" /></td></tr>
+                    <tr><td colspan="9"><x-ui.empty-state icon="hard-hat" :title="__('No active workers')" :description="__('Add workers first, or choose another category.')" /></td></tr>
                 @endforelse
             </x-ui.table>
 

@@ -27,8 +27,14 @@ use Illuminate\Validation\ValidationException;
  * A wage settlement (ST-…), e.g. the weekly Pathai payment or the monthly salaries.
  *
  * For each worker: brought forward + earned − advances − deductions = payable. What is paid now
- * (at most the payable) is one payment entry WP-… from the chosen account; the rest remains on
- * the worker's account for next time. Each worker's figures are kept as their payslip.
+ * is one payment entry WP-… from the chosen account; the rest remains on the worker's account
+ * for next time. Each worker's figures are kept as their payslip.
+ *
+ * A worker who owes an advance: the owner chooses how much of it to take back from the wages
+ * this time (take_back: all, half, none or any amount; all when left out). He can then be paid
+ * up to his wages less what is taken back, and the rest of the advance stays for later
+ * (client, 2026-11-25). Nothing extra is posted: paying more than the net balance simply leaves
+ * the advance on his account.
  */
 class RecordSettlement
 {
@@ -41,7 +47,7 @@ class RecordSettlement
     ) {}
 
     /**
-     * @param  array<string, mixed>  $input  settlement_date, period_from, period_to, account_id, notes, lines[] = {worker_id, paid}
+     * @param  array<string, mixed>  $input  settlement_date, period_from, period_to, account_id, notes, lines[] = {worker_id, paid, take_back (optional)}
      */
     public function handle(User $actor, array $input, string $idempotencyKey): Settlement
     {
@@ -65,6 +71,7 @@ class RecordSettlement
             'lines.*' => ['required', 'array'],
             'lines.*.worker_id' => ['required', 'integer', 'distinct', Rule::exists('workers', 'id')->where('kiln_id', $kilnId)],
             'lines.*.paid' => ['required', new MoneyAmount(allowZero: true)],
+            'lines.*.take_back' => ['nullable', new MoneyAmount(allowZero: true)],
         ], [
             'settlement_date.after_or_equal' => __('Pay on or after the last day of the period.'),
             'lines.required' => __('Choose at least one worker.'),
@@ -75,6 +82,7 @@ class RecordSettlement
             'settlement_date' => __('payment date'),
             'account_id' => __('account'),
             'lines.*.paid' => __('amount paid'),
+            'lines.*.take_back' => __('advance taken back'),
         ])->validate();
 
         $from = Carbon::createFromFormat('Y-m-d', $data['period_from'])->startOfDay();
@@ -103,17 +111,38 @@ class RecordSettlement
                 foreach ($rows as $index => $row) {
                     $workerId = (int) $row['worker_id'];
                     $paid = Money::fromRupees((string) $row['paid']);
-                    $limit = Money::fromPaisa(max(0, $owedNow[$workerId]->paisa));
+                    $split = WorkerLedger::advanceSplit($summary[$workerId], $owedNow[$workerId]);
+                    $maxTakeBack = Money::fromPaisa(min($split['advance']->paisa, $split['wages']->paisa));
 
+                    // No advance: nothing to take back, whatever was typed.
+                    $takeBack = trim((string) ($row['take_back'] ?? '')) === '' || ! $split['advance']->isPositive() ? $maxTakeBack : Money::fromRupees((string) $row['take_back']);
+                    if ($takeBack->greaterThan($maxTakeBack)) {
+                        throw ValidationException::withMessages(["lines.{$index}.take_back" => $split['advance']->greaterThan($split['wages'])
+                            ? __('At most :amount can be taken back: that is all the wages due to :worker.', ['amount' => $maxTakeBack->formatWithCurrency(), 'worker' => $workers[$workerId]->displayName()])
+                            : __('At most :amount can be taken back: that is the whole advance of :worker.', ['amount' => $maxTakeBack->formatWithCurrency(), 'worker' => $workers[$workerId]->displayName()])]);
+                    }
+
+                    $limit = $split['wages']->subtract($takeBack);
                     if ($paid->greaterThan($limit)) {
-                        throw ValidationException::withMessages(["lines.{$index}.paid" => __('More than :worker is owed (:amount). Give an advance instead.', [
-                            'worker' => $workers[$workerId]->displayName(),
-                            'amount' => $limit->formatWithCurrency(),
-                        ])]);
+                        throw ValidationException::withMessages(["lines.{$index}.paid" => $takeBack->isPositive()
+                            ? __('More than :worker can be paid (:amount: wages due less the advance taken back). Give an advance instead.', [
+                                'worker' => $workers[$workerId]->displayName(),
+                                'amount' => $limit->formatWithCurrency(),
+                            ])
+                            : __('More than :worker is owed (:amount). Give an advance instead.', [
+                                'worker' => $workers[$workerId]->displayName(),
+                                'amount' => $limit->formatWithCurrency(),
+                            ])]);
                     }
 
                     $total = $total->add($paid);
-                    $lines[] = ['worker' => $workers[$workerId], 'summary' => $summary[$workerId], 'paid' => $paid];
+                    $lines[] = [
+                        'worker' => $workers[$workerId],
+                        'summary' => $summary[$workerId],
+                        'paid' => $paid,
+                        'taken_back' => $split['advance']->isPositive() ? $takeBack : null,
+                        'advance_left' => $split['advance']->isPositive() ? $split['advance']->subtract($takeBack) : null,
+                    ];
                 }
 
                 $entry = null;
@@ -151,6 +180,8 @@ class RecordSettlement
                         'advances' => $line['summary']['advances'],
                         'deductions' => $line['summary']['deductions'],
                         'payable' => $line['summary']['payable'],
+                        'advance_taken_back' => $line['taken_back'],
+                        'advance_left' => $line['advance_left'],
                         'paid' => $line['paid'],
                         'remaining' => $line['summary']['payable']->subtract($line['paid']),
                     ]);

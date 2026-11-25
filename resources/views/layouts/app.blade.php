@@ -45,7 +45,7 @@
                     <p class="mb-2 px-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-stone-500">{{ $section['label'] }}</p>
                     <ul class="space-y-0.5">
                         @foreach ($section['items'] as $item)
-                            @php($active = request()->routeIs($item['active']))
+                            @php($active = request()->routeIs($item['active']) && ! (isset($item['except']) && request()->routeIs($item['except'])))
                             <li>
                                 <a
                                     href="{{ route($item['route']) }}"

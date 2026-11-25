@@ -25,8 +25,10 @@ use Livewire\Component;
  * Pay workers for a period (e.g. the weekly Pathai settlement): for each worker the balance
  * brought forward, what they earned, the advances and deductions, and what is payable. The
  * amount to pay starts at what is owed and can be lowered; the rest stays on their account.
+ * A worker who owes an advance gets "Take back from advance" (all, half, none or an amount):
+ * what is not taken back stays as advance and can be paid to him now.
  *
- * @property-read list<array{worker: Worker, summary: array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payable: Money}, owed_now: Money}>|null $rows Livewire computed property
+ * @property-read list<array{worker: Worker, summary: array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payments: Money, payable: Money}, owed_now: Money, wages: Money, advance: Money}>|null $rows Livewire computed property
  * @property-read array<int, string> $categoryOptions Livewire computed property
  * @property-read array<int, string> $accountOptions Livewire computed property
  * @property-read Money|null $accountBalance Livewire computed property
@@ -54,6 +56,9 @@ class SettlementForm extends Component
     /** @var array<int|string, string> worker id => amount to pay */
     public array $pay = [];
 
+    /** @var array<int|string, string> worker id => advance to take back (workers with an advance only) */
+    public array $takeBack = [];
+
     public string $formKey = '';
 
     public function mount(): void
@@ -76,6 +81,32 @@ class SettlementForm extends Component
             unset($this->rows);
             $this->fillDefaults();
         }
+
+        // A new amount taken back changes what can be paid now.
+        if (preg_match('/^takeBack\.(\d+)$/', $property, $m)) {
+            $this->payFromTakeBack((int) $m[1]);
+        }
+    }
+
+    /** "All", "Half" (half the wages go to the advance) or "None" of the advance taken back. */
+    public function setTakeBack(int $workerId, string $how): void
+    {
+        $row = collect($this->rows ?? [])->first(fn (array $r) => $r['worker']->id === $workerId);
+        if ($row === null || ! $row['advance']->isPositive()) {
+            return;
+        }
+
+        $max = min($row['advance']->paisa, $row['wages']->paisa);
+        $paisa = match ($how) {
+            'none' => 0,
+            // Half the wages, in whole rupees, never more than the advance.
+            'half' => min($max, intdiv(intdiv($row['wages']->paisa, 2), 100) * 100),
+            default => $max,
+        };
+
+        $this->takeBack[$workerId] = Money::fromPaisa($paisa)->toDecimal();
+        $this->resetErrorBag(['takeBack.'.$workerId, 'pay.'.$workerId]);
+        $this->payFromTakeBack($workerId);
     }
 
     public function setPeriod(string $period): void
@@ -93,7 +124,7 @@ class SettlementForm extends Component
      * Active workers (of the chosen category) with their figures for the period. Null while the
      * dates are invalid.
      *
-     * @return list<array{worker: Worker, summary: array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payable: Money}, owed_now: Money}>|null
+     * @return list<array{worker: Worker, summary: array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payments: Money, payable: Money}, owed_now: Money, wages: Money, advance: Money}>|null
      */
     #[Computed]
     public function rows(): ?array
@@ -121,7 +152,7 @@ class SettlementForm extends Component
             'worker' => $worker,
             'summary' => $summary[$worker->id],
             'owed_now' => $owedNow[$worker->id],
-        ])->all();
+        ] + WorkerLedger::advanceSplit($summary[$worker->id], $owedNow[$worker->id]))->all();
     }
 
     /**
@@ -164,7 +195,8 @@ class SettlementForm extends Component
             $id = $row['worker']->id;
             if ($this->include[$id] ?? false) {
                 $rowIndex[count($lines)] = $id;
-                $lines[] = ['worker_id' => $id, 'paid' => $this->pay[$id] ?? ''];
+                $lines[] = ['worker_id' => $id, 'paid' => $this->pay[$id] ?? '']
+                    + ($row['advance']->isPositive() ? ['take_back' => $this->takeBack[$id] ?? ''] : []);
             }
         }
 
@@ -182,6 +214,7 @@ class SettlementForm extends Component
             foreach ($e->errors() as $key => $errors) {
                 $mapped = match (true) {
                     (bool) preg_match('/^lines\.(\d+)\.(paid|worker_id)$/', $key, $m) => 'pay.'.($rowIndex[(int) $m[1]] ?? 0),
+                    (bool) preg_match('/^lines\.(\d+)\.take_back$/', $key, $m) => 'takeBack.'.($rowIndex[(int) $m[1]] ?? 0),
                     $key === 'period_from' => 'periodFrom',
                     $key === 'period_to' => 'periodTo',
                     $key === 'settlement_date' => 'settlementDate',
@@ -218,6 +251,7 @@ class SettlementForm extends Component
     {
         $this->include = [];
         $this->pay = [];
+        $this->takeBack = [];
 
         foreach ($this->rows ?? [] as $row) {
             $id = $row['worker']->id;
@@ -225,7 +259,23 @@ class SettlementForm extends Component
             $active = ! $row['summary']['earned']->isZero() || ! $row['summary']['advances']->isZero() || ! $row['summary']['deductions']->isZero();
             $this->include[$id] = $owed->isPositive() || $active;
             $this->pay[$id] = $owed->toDecimal();
+            if ($row['advance']->isPositive()) {
+                // As before: the whole advance is taken back unless the owner chooses otherwise.
+                $this->takeBack[$id] = Money::fromPaisa(min($row['advance']->paisa, $row['wages']->paisa))->toDecimal();
+            }
         }
+    }
+
+    /** Pay now = wages due less the advance taken back (left alone while the amount is not valid). */
+    private function payFromTakeBack(int $workerId): void
+    {
+        $row = collect($this->rows ?? [])->first(fn (array $r) => $r['worker']->id === $workerId);
+        $text = trim($this->takeBack[$workerId] ?? '');
+        if ($row === null || ! preg_match('/^\d{1,13}(\.\d{1,2})?$/', $text)) {
+            return;
+        }
+
+        $this->pay[$workerId] = Money::fromPaisa(max(0, $row['wages']->paisa - Money::fromRupees($text)->paisa))->toDecimal();
     }
 
     private function validDate(string $value): ?string

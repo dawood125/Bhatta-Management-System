@@ -12,7 +12,7 @@ use App\Models\User;
 class Navigation
 {
     /**
-     * @return list<array{label: string, items: list<array{label: string, route: string, icon: string, active: string}>}>
+     * @return list<array{label: string, items: list<array{label: string, route: string, icon: string, active: string, except?: string}>}>
      */
     public static function for(User $user): array
     {
@@ -41,7 +41,9 @@ class Navigation
             [
                 'label' => __('Kiln'),
                 'items' => [
-                    ['label' => __('Sales'), 'route' => 'sales.index', 'icon' => 'shopping-cart', 'active' => 'sales.*', 'permissions' => [Permission::SalesView]],
+                    ['label' => __('Sales'), 'route' => 'sales.index', 'icon' => 'shopping-cart', 'active' => 'sales.*', 'except' => 'sales.driver-settlement', 'permissions' => [Permission::SalesView]],
+                    // Also a tab of Sales; listed here so diesel and maintenance are easy to find.
+                    ['label' => __('Driver settlement'), 'route' => 'sales.driver-settlement', 'icon' => 'truck', 'active' => 'sales.driver-settlement', 'permissions' => [Permission::SalesView]],
                     ['label' => __('Production'), 'route' => 'production.index', 'icon' => 'factory', 'active' => 'production.*', 'permissions' => [Permission::ProductionView]],
                     ['label' => __('Materials'), 'route' => 'materials.index', 'icon' => 'package', 'active' => 'materials.*', 'permissions' => [Permission::MaterialsView]],
                     ['label' => __('Labour'), 'route' => 'labour.index', 'icon' => 'hard-hat', 'active' => 'labour.*', 'permissions' => [Permission::LabourView]],

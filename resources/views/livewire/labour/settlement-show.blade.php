@@ -62,7 +62,13 @@
                     <x-ui.td align="end"><x-ui.money :amount="$line->advances" :currency="false" muted /></x-ui.td>
                     <x-ui.td align="end"><x-ui.money :amount="$line->deductions" :currency="false" muted /></x-ui.td>
                     <x-ui.td align="end"><x-ui.money :amount="$line->payable" :currency="false" /></x-ui.td>
-                    <x-ui.td align="end" class="font-semibold"><x-ui.money :amount="$line->paid" :currency="false" /></x-ui.td>
+                    <x-ui.td align="end">
+                        <x-ui.money :amount="$line->paid" :currency="false" class="font-semibold" />
+                        @if ($line->advance_taken_back !== null)
+                            <p class="text-xs text-stone-500">{{ __('Advance taken back') }}: <x-ui.money :amount="$line->advance_taken_back" :currency="false" /></p>
+                            <p class="text-xs text-stone-500">{{ __('Advance left') }}: <x-ui.money :amount="$line->advance_left" :currency="false" /></p>
+                        @endif
+                    </x-ui.td>
                     <x-ui.td align="end"><x-worker-balance :amount="$line->remaining" /></x-ui.td>
                 </tr>
             @endforeach
@@ -97,6 +103,10 @@
                         @endforeach
                         <tr class="border-t border-stone-300 font-semibold"><td class="py-1">{{ __('Payable') }}</td><td class="py-1 text-end"><x-ui.money :amount="$line->payable" /></td></tr>
                         <tr class="font-semibold"><td class="py-0.5">{{ __('Paid') }}</td><td class="py-0.5 text-end"><x-ui.money :amount="$line->paid" /></td></tr>
+                        @if ($line->advance_taken_back !== null)
+                            <tr><td class="py-0.5 text-stone-700">{{ __('Advance taken back') }}</td><td class="py-0.5 text-end"><x-ui.money :amount="$line->advance_taken_back" /></td></tr>
+                            <tr><td class="py-0.5 text-stone-700">{{ __('Advance left') }}</td><td class="py-0.5 text-end"><x-ui.money :amount="$line->advance_left" /></td></tr>
+                        @endif
                         <tr class="border-t border-stone-300"><td class="py-1">{{ __('Remaining on account') }}</td><td class="py-1 text-end"><x-ui.money :amount="$line->remaining" /></td></tr>
                     </tbody>
                 </table>

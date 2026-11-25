@@ -80,17 +80,18 @@ class WorkerLedger
     /**
      * What happened on each worker's account in a period: the balance brought forward, earned,
      * advances and payments (net of money paid back), deductions, and the balance at the end.
-     * A reversal counts against what it reverses.
+     * A reversal counts against what it reverses. "payments" is the part of "advances" that was
+     * wages paid (used to tell wages from advance in advanceSplit()).
      *
      * @param  list<int>  $workerIds
-     * @return array<int, array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payable: Money}>
+     * @return array<int, array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payments: Money, payable: Money}>
      */
     public function periodSummary(array $workerIds, CarbonInterface $from, CarbonInterface $to): array
     {
         $opening = $this->balances($workerIds, $from->copy()->subDay());
         $sums = [];
         foreach ($workerIds as $id) {
-            $sums[$id] = ['opening' => 0, 'earned' => 0, 'advances' => 0, 'deductions' => 0];
+            $sums[$id] = ['opening' => 0, 'earned' => 0, 'advances' => 0, 'deductions' => 0, 'payments' => 0];
         }
 
         if ($workerIds !== []) {
@@ -117,6 +118,10 @@ class WorkerLedger
                 };
                 // Earned is money owed to the worker (credit); the others are taken off (debit).
                 $sums[(int) $row->worker_id][$bucket] += in_array($bucket, ['earned', 'opening'], true) ? (int) $row->net : -(int) $row->net;
+                // Wages already paid in the period are part of "advances" but are not an advance.
+                if (JournalType::tryFrom($row->kind) === JournalType::WagePayment) {
+                    $sums[(int) $row->worker_id]['payments'] -= (int) $row->net;
+                }
             }
         }
 
@@ -129,11 +134,32 @@ class WorkerLedger
                 'earned' => Money::fromPaisa($sums[$id]['earned']),
                 'advances' => Money::fromPaisa($sums[$id]['advances']),
                 'deductions' => Money::fromPaisa($sums[$id]['deductions']),
+                'payments' => Money::fromPaisa($sums[$id]['payments']),
                 'payable' => Money::fromPaisa($payable),
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * A worker's position on the payment date split in two: the wages due to him and the
+     * advance he still owes (the ledger keeps only the net of the two). Wages are what he
+     * earned in the period, less deductions, plus any wages still due from before and anything
+     * earned after the period, less wages already paid in the period; the advance is whatever
+     * brings that back to the net balance.
+     * wages − advance = owed now, always.
+     *
+     * @param  array{brought_forward: Money, earned: Money, advances: Money, deductions: Money, payments: Money, payable: Money}  $summary  from periodSummary()
+     * @return array{wages: Money, advance: Money}
+     */
+    public static function advanceSplit(array $summary, Money $owedNow): array
+    {
+        $later = $owedNow->paisa - $summary['payable']->paisa;
+        $wages = max(0, max(0, $summary['brought_forward']->paisa) + $summary['earned']->paisa - $summary['deductions']->paisa - $summary['payments']->paisa + max(0, $later));
+        $advance = max(0, $wages - $owedNow->paisa);
+
+        return ['wages' => Money::fromPaisa($wages), 'advance' => Money::fromPaisa($advance)];
     }
 
     /**

@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Money $advances
  * @property Money $deductions
  * @property Money $payable
+ * @property Money|null $advance_taken_back
+ * @property Money|null $advance_left
  * @property Money $paid
  * @property Money $remaining
  * @property-read Settlement $settlement
@@ -41,6 +43,8 @@ class SettlementLine extends Model
             'advances' => MoneyCast::class,
             'deductions' => MoneyCast::class,
             'payable' => MoneyCast::class,
+            'advance_taken_back' => MoneyCast::class,
+            'advance_left' => MoneyCast::class,
             'paid' => MoneyCast::class,
             'remaining' => MoneyCast::class,
         ];

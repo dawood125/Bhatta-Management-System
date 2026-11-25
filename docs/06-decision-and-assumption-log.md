@@ -112,6 +112,8 @@
 | D-106 | 2026-11-25 | Workers have an opening balance (wages already due, or an advance already taken) with an "as of" date, posted to Wages payable for the worker against "Opening balances", like parties. Changing it reverses the old entry. In a settlement it counts as brought forward | Partner testing | Final |
 | D-107 | 2026-11-25 | Brick stock adjustments have a third choice, "Opening stock", for bricks already at a stage on the first day. It is marked on the entry, needs no reason, and is never counted as bricks made | Partner testing | Final |
 | D-108 | 2026-11-25 | Pathai has "Made by: hand / machine". By machine, the worker chosen is a daily-wage worker (machine operator first) who earns one day's wage, once per date: nothing more when he already has wages that day. Reversing the paid entry moves the day to his other machine entry that day | Partner testing | Final |
+| D-109 | 2026-11-25 | At a settlement the owner chooses how much of a worker's advance to take back from his wages: All (the default, as before), Half (half the wages) or None, or any amount. He can be paid up to his wages less what is taken back; the rest of the advance stays on his account. Nothing extra is posted. The payslip shows "Advance taken back" and "Advance left" | Client | Final |
+| D-110 | 2026-11-25 | "Driver settlement" is also in the sidebar (it was only a tab of Sales, and diesel and maintenance were hard to find) | Partner testing | Final |
 
 ## Assumptions (to be confirmed)
 

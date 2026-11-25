@@ -1546,5 +1546,15 @@
     "normal :unit": "عام :unit",
     "opening balance": "ابتدائی بیلنس",
     "per big :unit": "فی بڑی :unit",
-    "per normal :unit": "فی عام :unit"
+    "per normal :unit": "فی عام :unit",
+    "Advance left": "باقی ایڈوانس",
+    "Advance taken back": "ایڈوانس میں سے کٹوتی",
+    "Advance to take back from :name": ":name کے ایڈوانس میں سے کٹوتی",
+    "At most :amount can be taken back: that is all the wages due to :worker.": "زیادہ سے زیادہ :amount کاٹے جا سکتے ہیں: یہ :worker کی پوری واجب الادا اجرت ہے۔",
+    "At most :amount can be taken back: that is the whole advance of :worker.": "زیادہ سے زیادہ :amount کاٹے جا سکتے ہیں: یہ :worker کا پورا ایڈوانس ہے۔",
+    "Half": "آدھا",
+    "Left": "باقی",
+    "More than :worker can be paid (:amount: wages due less the advance taken back). Give an advance instead.": ":worker کو اس سے زیادہ نہیں دیا جا سکتا (:amount: واجب الادا اجرت میں سے ایڈوانس کی کٹوتی کے بعد)۔ اس کے بجائے ایڈوانس دیں۔",
+    "Take back from advance": "ایڈوانس میں سے کٹوتی",
+    "advance taken back": "ایڈوانس کی کٹوتی"
 }

@@ -61,3 +61,20 @@ What the client explained after the first test, and what changed in the system.
 - 24 new tests in `tests/Feature/Client/OpeningDataTest.php`; the full suite (808 tests), Larastan and Pint pass.
 - Browser check on demo data: worker opening balance (add and edit), machine Pathai (operator list, day wage, "already paid" on a second entry), brick opening stock, and the purchase label.
 - The first-day order of entry is in `docs/10-first-day-setup.md`.
+
+## Part 3 (2026-11-25): advance taken back at settlement
+
+**Before:** a settlement always took the whole advance out of the wages. A worker with a Rs 5,000 advance who earned Rs 3,000 got nothing.
+
+**Now:** each worker with an advance has **"Take back from advance"** on the settlement screen, with **All / Half / None** buttons or any amount.
+- *All* (the default) works as before.
+- *Half* takes half the wages for the advance and pays the other half.
+- *None* pays the full wages; the advance stays.
+- "Pay now" follows the choice, and can still be lowered. It can never be more than the wages less what is taken back (paying more is a new advance).
+- The payslip and the settlement page show **Advance taken back** and **Advance left**.
+
+How the split is worked out (`WorkerLedger::advanceSplit()`): wages due = wages still due from before + earned − deductions − wages already paid in the period + anything earned after it; advance = wages due − the net balance. Old settlements have no split and show as before.
+
+Also: **Driver settlement** is now in the sidebar.
+
+Tests: 12 in `tests/Feature/Client/AdvanceTakeBackTest.php`; the full suite (820 tests), Larastan and Pint pass. Checked in the browser on demo data (All / Half / None and the sidebar link).

@@ -87,6 +87,9 @@ function routePermissions(): array
         'settings.materials' => Permission::SettingsManage,
         'backups.index' => Permission::BackupsManage,
         'backups.download' => Permission::BackupsManage,
+        'data.index' => Permission::DataManage,
+        'data.template' => Permission::DataManage,
+        'data.export' => Permission::DataManage, // "all"; one list needs that list's view permission (ExportsTest)
     ];
 }
 
@@ -137,6 +140,8 @@ beforeEach(function () {
         'accounts.book' => ['account' => $cash->id],
         'reports.pdf' => ['report' => 'profit-and-loss'],
         'backups.download' => ['disk' => 'backups', 'file' => $backup],
+        'data.template' => ['type' => 'parties'],
+        'data.export' => ['type' => 'all'],
     ];
 });
 

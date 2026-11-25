@@ -1,7 +1,11 @@
 @php use App\Enums\StageKind; use App\Models\Unit; @endphp
 @php($bricksForSale = \App\Support\Quantity::fromMilli((int) collect($this->products)->filter(fn ($p) => $p->unit->code === Unit::BRICK)->sum(fn ($p) => ($this->levels['saleable'][$p->id] ?? \App\Support\Quantity::zero())->milli)))
 <div>
-    <x-ui.page-header :title="__('Production')" :description="__('Bricks at every stage, from Pathai to ready for sale.')" />
+    <x-ui.page-header :title="__('Production')" :description="__('Bricks at every stage, from Pathai to ready for sale.')">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'brick-stock')">{{ __('Excel') }}</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
     <x-production.tabs active="stock" />
 

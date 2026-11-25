@@ -77,6 +77,9 @@
                                 <x-ui.td>{{ $diskLabel($backup['disk']) }}</x-ui.td>
                                 <x-ui.td align="end">
                                     <x-ui.button size="sm" variant="ghost" icon="download" :href="route('backups.download', ['disk' => $backup['disk'], 'file' => $backup['file']])">{{ __('Download') }}</x-ui.button>
+                                    @if ($isOwner)
+                                        <x-ui.button size="sm" variant="ghost" icon="history" wire:click="openRestore('{{ $backup['disk'] }}', '{{ $backup['file'] }}')">{{ __('Restore') }}</x-ui.button>
+                                    @endif
                                 </x-ui.td>
                             </tr>
                         @endforeach
@@ -222,4 +225,27 @@
         </x-ui.card>
         </div>
     </div>
+
+    <x-ui.modal wire:model="showRestore" :title="__('Restore this backup')" max-width="lg">
+        <form id="restore-form" wire:submit="runRestore" class="space-y-4">
+            <div class="flex items-start gap-2 rounded-[var(--radius-control)] bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200" role="alert">
+                <x-lucide-triangle-alert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <p>{{ __('Everything goes back to how it was in :file. Anything entered after that is lost. A backup of today is made first, so this can be undone. The site closes for a minute while it works, and everyone may need to log in again.', ['file' => $restoreFile]) }}</p>
+            </div>
+            @error('file')
+                <p class="text-sm text-red-600">{{ $message }}</p>
+            @enderror
+            <x-ui.field :label="__('Your password')" for="restore-password" error="password" required>
+                <x-ui.input id="restore-password" type="password" wire:model="password" autocomplete="current-password" />
+            </x-ui.field>
+            <x-ui.field :label="__('Type :phrase to confirm', ['phrase' => $restorePhrase])" for="restore-phrase" error="phrase" required>
+                <x-ui.input id="restore-phrase" wire:model="phrase" dir="ltr" autocomplete="off" :placeholder="$restorePhrase" />
+            </x-ui.field>
+            <p wire:loading wire:target="runRestore" class="text-sm text-stone-600" role="status">{{ __('Restoring… this can take a few minutes. Keep this page open.') }}</p>
+        </form>
+        <x-slot:footer>
+            <x-ui.button variant="secondary" x-on:click="open = false">{{ __('Cancel') }}</x-ui.button>
+            <x-ui.button type="submit" form="restore-form" variant="danger" icon="history" loading="runRestore">{{ __('Restore') }}</x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
 </div>

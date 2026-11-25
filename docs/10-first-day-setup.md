@@ -4,6 +4,10 @@ Do this once, on the day the kiln starts using Bhatta Manager. Pick **one start 
 
 Do the steps in this order. Each later step needs the earlier ones.
 
+**Faster with Excel:** steps 3, 4, 6 and 7 can be done in one go on **Administration → Data → Import from Excel**. Download the template, fill it in, upload it, check the preview, then press Import. Nothing is saved unless every row is correct.
+
+**After testing or training:** Administration → Data → **Clear all entries** removes the test entries and sets every balance to 0, keeping your lists and settings. Then enter the real opening data.
+
 ## 1. Kiln settings
 - **Kiln settings → Kiln profile**: kiln name, address, phone and logo.
 - **Kiln settings → Materials**: for soil, set *bricks from one normal trolley* (for example 2,000) and *from one big trolley* (for example 2,600). For Kassu, set *bricks from one trolley* (for example 17,778).

@@ -56,6 +56,7 @@ class Navigation
                     ['label' => __('Users'), 'route' => 'users.index', 'icon' => 'users', 'active' => 'users.*', 'permissions' => [Permission::UsersView]],
                     ['label' => __('Activity log'), 'route' => 'activity.index', 'icon' => 'history', 'active' => 'activity.*', 'permissions' => [Permission::ActivityView]],
                     ['label' => __('Backups'), 'route' => 'backups.index', 'icon' => 'database-backup', 'active' => 'backups.*', 'permissions' => [Permission::BackupsManage]],
+                    ['label' => __('Data'), 'route' => 'data.index', 'icon' => 'database', 'active' => 'data.*', 'permissions' => [Permission::DataManage]],
                 ],
             ],
         ];

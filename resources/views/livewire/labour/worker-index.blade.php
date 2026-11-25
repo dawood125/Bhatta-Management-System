@@ -1,10 +1,11 @@
 <div>
     <x-ui.page-header :title="__('Labour')" :description="__('Workers, what each one has earned and taken, and what is still due.')">
-        @if ($canManage)
-            <x-slot:actions>
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'workers')">{{ __('Excel') }}</x-ui.button>
+            @if ($canManage)
                 <x-ui.button icon="user-plus" wire:click="create">{{ __('Add worker') }}</x-ui.button>
-            </x-slot:actions>
-        @endif
+            @endif
+        </x-slot:actions>
     </x-ui.page-header>
 
     <x-labour.tabs active="workers" />

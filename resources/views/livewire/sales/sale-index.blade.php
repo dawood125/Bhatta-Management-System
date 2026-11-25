@@ -1,11 +1,12 @@
 @php use App\Enums\PaymentStatus; use App\Enums\SaleStatus; @endphp
 <div>
     <x-ui.page-header :title="__('Sales')" :description="__('Bricks sold to customers: what each one owes, has paid and still has to collect.')">
-        @if ($canRecord)
-            <x-slot:actions>
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'sales')">{{ __('Excel') }}</x-ui.button>
+            @if ($canRecord)
                 <x-ui.button icon="plus" :href="route('sales.create')" wire:navigate>{{ __('New sale') }}</x-ui.button>
-            </x-slot:actions>
-        @endif
+            @endif
+        </x-slot:actions>
     </x-ui.page-header>
 
     <x-sales.tabs active="sales" />

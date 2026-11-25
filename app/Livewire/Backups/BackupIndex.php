@@ -6,12 +6,16 @@ use App\Backups\BackupCatalog;
 use App\Backups\BackupDrill;
 use App\Backups\BackupRunner;
 use App\Backups\GoogleDrive;
+use App\Backups\WebRestore;
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Jobs\CopyBackupToGoogleDrive;
 use App\Livewire\Concerns\RunsActions;
 use App\Models\AppSetting;
 use App\Models\BackupRun;
 use App\Models\User;
+use App\Support\Access\KilnAccess;
+use App\Support\Kiln\CurrentKiln;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -36,9 +40,51 @@ class BackupIndex extends Component
     #[Locked]
     public ?array $driveCode = null;
 
+    /** Restore dialog: the backup chosen, and what the owner types. */
+    public bool $showRestore = false;
+
+    public string $restoreDisk = '';
+
+    public string $restoreFile = '';
+
+    public string $password = '';
+
+    public string $phrase = '';
+
     public function mount(): void
     {
         $this->authorize(Permission::BackupsManage->value);
+    }
+
+    public function openRestore(string $disk, string $file): void
+    {
+        abort_unless($this->isOwner(), 403);
+        $this->resetErrorBag();
+        $this->restoreDisk = $disk;
+        $this->restoreFile = $file;
+        $this->password = '';
+        $this->phrase = '';
+        $this->showRestore = true;
+    }
+
+    public function runRestore(WebRestore $restore): void
+    {
+        $result = $this->runAction(fn () => $restore->handle($this->actor(), [
+            'disk' => $this->restoreDisk,
+            'file' => $this->restoreFile,
+            'password' => $this->password,
+            'phrase' => $this->phrase,
+        ]));
+
+        $this->showRestore = false;
+        $this->password = '';
+        $this->phrase = '';
+
+        session()->flash('toast', $result['problems'] === []
+            ? ['type' => 'success', 'message' => __('Restored :file. The books are consistent.', ['file' => $result['file']])]
+            : ['type' => 'error', 'message' => __('Restored :file, but the books in it have problems. Ask your developer to check.', ['file' => $result['file']])]);
+        // The whole database changed: open the page afresh.
+        $this->redirectRoute('backups.index');
     }
 
     public function backUpNow(BackupRunner $runner): void
@@ -184,7 +230,14 @@ class BackupIndex extends Component
             'driveAvailable' => app(GoogleDrive::class)->isAvailable(),
             'drive' => AppSetting::current(),
             'lastCopy' => BackupRun::query()->where('kind', BackupRun::COPY)->latest('id')->first(),
+            'isOwner' => $this->isOwner(),
+            'restorePhrase' => WebRestore::PHRASE,
         ])->title(__('Backups'));
+    }
+
+    private function isOwner(): bool
+    {
+        return app(KilnAccess::class)->roleIn($this->actor(), app(CurrentKiln::class)->get()) === Role::Owner;
     }
 
     private function actor(): User

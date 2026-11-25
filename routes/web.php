@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\BackupDownloadController;
+use App\Http\Controllers\Data\ExportController;
+use App\Http\Controllers\Data\ImportTemplateController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PartyStatementPdfController;
 use App\Http\Controllers\ReportPdfController;
@@ -12,6 +14,7 @@ use App\Livewire\Accounts\TransactionIndex;
 use App\Livewire\Activity\ActivityIndex;
 use App\Livewire\Backups\BackupIndex;
 use App\Livewire\Dashboard;
+use App\Livewire\Data\DataIndex;
 use App\Livewire\Dev\ComponentGallery;
 use App\Livewire\Expenses\ExpenseIndex;
 use App\Livewire\Labour\AttendanceSheet;
@@ -139,6 +142,9 @@ Route::middleware(['auth', 'auth.session', 'kiln'])->group(function () {
     });
 
     Route::livewire('/backups', BackupIndex::class)->name('backups.index');
+    Route::livewire('/data', DataIndex::class)->name('data.index');
+    Route::get('/data/templates/{type}.xlsx', ImportTemplateController::class)->where('type', '[a-z-]+')->middleware('throttle:pdf')->name('data.template');
+    Route::get('/data/export/{type}.xlsx', ExportController::class)->where('type', '[a-z-]+')->middleware('throttle:pdf')->name('data.export');
     Route::get('/backups/{disk}/{file}', BackupDownloadController::class)->where(['disk' => '[a-z0-9_-]+', 'file' => '[A-Za-z0-9._-]+\\.zip'])->middleware('throttle:pdf')->name('backups.download');
 
     Route::prefix('settings')->name('settings.')->group(function () {

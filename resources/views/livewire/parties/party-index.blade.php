@@ -1,10 +1,11 @@
 <div>
     <x-ui.page-header :title="__('Parties')" :description="__('Customers, suppliers, drivers and sales agents, with what each one owes or is owed.')">
-        @if ($canManage)
-            <x-slot:actions>
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'parties')">{{ __('Excel') }}</x-ui.button>
+            @if ($canManage)
                 <x-ui.button icon="user-plus" wire:click="create">{{ __('Add party') }}</x-ui.button>
-            </x-slot:actions>
-        @endif
+            @endif
+        </x-slot:actions>
     </x-ui.page-header>
 
     <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-2xl">

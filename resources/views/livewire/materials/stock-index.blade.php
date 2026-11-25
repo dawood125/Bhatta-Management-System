@@ -1,6 +1,7 @@
 <div>
     <x-ui.page-header :title="__('Materials')" :description="__('Stock of soil, fuel and other materials, valued at their average cost.')">
         <x-slot:actions>
+            <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'material-stock')">{{ __('Excel') }}</x-ui.button>
             @if ($canAdjust)
                 <x-ui.button variant="secondary" icon="clipboard-pen" wire:click="openAdjust('opening')">{{ __('Opening stock / shortage') }}</x-ui.button>
             @endif

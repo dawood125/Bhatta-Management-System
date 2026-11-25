@@ -3,6 +3,7 @@
         <x-ui.page-header :title="__('Material purchases')" :description="__('Soil, coal and other materials bought, with transport and other charges.')">
             <x-slot:actions>
                 <x-ui.button variant="secondary" icon="printer" x-on:click="window.print()">{{ __('Print') }}</x-ui.button>
+                <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'purchases')">{{ __('Excel') }}</x-ui.button>
                 @if ($canRecord)
                     <x-ui.button icon="truck" :href="route('materials.purchases.create')" wire:navigate>{{ __('New purchase') }}</x-ui.button>
                 @endif

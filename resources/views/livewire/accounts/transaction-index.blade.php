@@ -1,6 +1,10 @@
 @php use App\Support\JournalPresenter; @endphp
 <div>
-    <x-ui.page-header :title="__('Transactions')" :description="__('Every money transaction, newest first. Mistakes are corrected by reversing; nothing is ever deleted.')" />
+    <x-ui.page-header :title="__('Transactions')" :description="__('Every money transaction, newest first. Mistakes are corrected by reversing; nothing is ever deleted.')">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="file-spreadsheet" :href="route('data.export', 'transactions')">{{ __('Excel') }}</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
     <x-ui.table>
         <x-slot:toolbar>

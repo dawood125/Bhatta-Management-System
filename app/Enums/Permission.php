@@ -41,6 +41,7 @@ enum Permission: string
     case DaysClose = 'days.close';
     case DaysReopen = 'days.reopen';
     case BackupsManage = 'backups.manage';
+    case DataManage = 'data.manage';
 
     public function label(): string
     {
@@ -78,6 +79,7 @@ enum Permission: string
             self::DaysClose => __('Count the cash and close the day'),
             self::DaysReopen => __('Reopen closed days and enter on them'),
             self::BackupsManage => __('Make and download backups'),
+            self::DataManage => __('Reset, import and export data'),
         };
     }
 }

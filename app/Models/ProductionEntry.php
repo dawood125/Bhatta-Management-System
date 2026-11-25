@@ -28,9 +28,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon $entry_date
  * @property string|null $team
  * @property int|null $worker_id
+ * @property bool $by_machine
  * @property Quantity|null $made
  * @property Quantity|null $rejected
  * @property Quantity $quantity
+ * @property bool $is_opening
  * @property string|null $notes
  * @property int|null $material_usage_id
  * @property string $idempotency_key
@@ -59,6 +61,8 @@ class ProductionEntry extends Model
             'made' => QuantityCast::class,
             'rejected' => QuantityCast::class,
             'quantity' => QuantityCast::class,
+            'is_opening' => 'boolean',
+            'by_machine' => 'boolean',
             'reversed_at' => 'datetime',
         ];
     }

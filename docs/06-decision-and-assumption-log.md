@@ -108,7 +108,10 @@
 | D-102 | 2026-11-24 | Raw materials can state the bricks one unit makes; Pathai then takes them out of stock for the accepted bricks (rejected raw bricks are reused) at average cost, refused when stock is short, and returned when the entry is reversed. Soil is counted in normal trolleys; a big trolley is priced as bought and adds its share (2,600 ÷ 2,000) | Client | Final |
 | D-103 | 2026-11-24 | New fifth stage "Waiting to re-fire" (changes D-026). Nakaasi can send bricks there and loading takes them back. Kamyaar is paid for raw bricks only; Nakaasi wages and the unloaded count apply when bricks come out in a grade, so each is counted once | Client; timing of the wage by Agent | Final unless the client objects |
 | D-104 | 2026-11-24 | Trolleys belong to the kiln (replaces A-006). The driver keeps carriage less diesel and maintenance, paid monthly, so carriage stays pass-through (D-013). Trolley costs (TC-…) debit the driver. A shortfall carries forward as owed by the driver | Client; shortfall by Agent | Shortfall to confirm |
-| D-105 | 2026-11-24 | Machine operator is a daily-wage category; machine-made Pathai pays no piece wage | Client | Final |
+| D-105 | 2026-11-24 | Machine operator is a daily-wage category; machine-made Pathai pays no piece wage | Client | Changed by D-108 |
+| D-106 | 2026-11-25 | Workers have an opening balance (wages already due, or an advance already taken) with an "as of" date, posted to Wages payable for the worker against "Opening balances", like parties. Changing it reverses the old entry. In a settlement it counts as brought forward | Partner testing | Final |
+| D-107 | 2026-11-25 | Brick stock adjustments have a third choice, "Opening stock", for bricks already at a stage on the first day. It is marked on the entry, needs no reason, and is never counted as bricks made | Partner testing | Final |
+| D-108 | 2026-11-25 | Pathai has "Made by: hand / machine". By machine, the worker chosen is a daily-wage worker (machine operator first) who earns one day's wage, once per date: nothing more when he already has wages that day. Reversing the paid entry moves the day to his other machine entry that day | Partner testing | Final |
 
 ## Assumptions (to be confirmed)
 

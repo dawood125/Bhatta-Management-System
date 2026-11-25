@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Production;
 
+use App\Actions\Labour\RecordWorkEntry;
 use App\Actions\Production\RecordBrickAdjustment;
 use App\Actions\Production\RecordFiring;
 use App\Actions\Production\RecordLoading;
@@ -44,7 +45,7 @@ use Livewire\Component;
  * @property-read Collection<int, Material> $fuelMaterials Livewire computed property
  * @property-read Collection<string, ProductionStage> $stages Livewire computed property
  * @property-read array<int, string> $workerOptions Livewire computed property
- * @property-read array{rate: Money, amount: Money|null}|null $wages Livewire computed property
+ * @property-read array{rate: Money, amount: Money|null, per_day: bool, paid_already: bool}|null $wages Livewire computed property
  */
 class EntryForms extends Component
 {
@@ -71,7 +72,7 @@ class EntryForms extends Component
         $today = now()->format('Y-m-d');
 
         $this->form = match ($type) {
-            ProductionEntryKind::Pathai => ['entry_date' => $today, 'worker_id' => '', 'team' => '', 'made' => '', 'rejected' => '', 'notes' => ''],
+            ProductionEntryKind::Pathai => ['entry_date' => $today, 'made_by' => RecordPathai::BY_HAND, 'worker_id' => '', 'team' => '', 'made' => '', 'rejected' => '', 'notes' => ''],
             ProductionEntryKind::Loading => ['entry_date' => $today, 'worker_id' => '', 'quantity' => '', 'refire' => '', 'notes' => ''],
             ProductionEntryKind::Firing => ['entry_date' => $today, 'quantity' => '', 'notes' => '', 'fuel' => []],
             ProductionEntryKind::Nakaasi => [
@@ -93,16 +94,40 @@ class EntryForms extends Component
     {
         // A field the person has just changed no longer shows its old error.
         $this->resetErrorBag($property);
+
+        // Hand and machine Pathai pay different workers: choose again.
+        if ($property === 'form.made_by') {
+            $this->form['worker_id'] = '';
+            unset($this->workerOptions, $this->wages);
+        }
+    }
+
+    /** A Pathai entry made by the machine (its operator is paid by the day). */
+    public function byMachine(): bool
+    {
+        return $this->kind === ProductionEntryKind::Pathai->value && ($this->form['made_by'] ?? '') === RecordPathai::BY_MACHINE;
     }
 
     /**
-     * Active workers paid for this kind of work (piece-rate categories doing it).
+     * Active workers paid for this kind of work (piece-rate categories doing it); for Pathai made
+     * by the machine, the workers paid by the day, machine operators first.
      *
      * @return array<int, string>
      */
     #[Computed]
     public function workerOptions(): array
     {
+        if ($this->byMachine()) {
+            return Worker::query()
+                ->where('is_active', true)
+                ->whereHas('category', fn ($q) => $q->where('basis', PayBasis::PerDay->value))
+                ->with('category')
+                ->get()
+                ->sortBy(fn (Worker $worker) => [$worker->category->code === 'machine_operator' ? 0 : 1, $worker->name])
+                ->mapWithKeys(fn (Worker $worker) => [$worker->id => $worker->displayName().' · '.$worker->category->displayName()])
+                ->all();
+        }
+
         $activity = ($kind = ProductionEntryKind::tryFrom($this->kind)) !== null ? LabourActivity::forEntryKind($kind) : null;
         if ($activity === null) {
             return [];
@@ -132,9 +157,16 @@ class EntryForms extends Component
         }
 
         $worker = Worker::query()->find((int) $workerId);
-        $rate = $worker !== null ? app(WorkerLedger::class)->rateFor($worker, Carbon::parse($date)->startOfDay()) : null;
-        if ($rate === null) {
+        $day = Carbon::parse($date)->startOfDay();
+        $rate = $worker !== null ? app(WorkerLedger::class)->rateFor($worker, $day) : null;
+        if ($worker === null || $rate === null) {
             return null;
+        }
+
+        if ($this->byMachine()) {
+            $paid = RecordWorkEntry::paidForDay($worker, $day);
+
+            return ['rate' => $rate->rate, 'amount' => $paid ? null : $rate->rate, 'per_day' => true, 'paid_already' => $paid];
         }
 
         $bricks = match (ProductionEntryKind::tryFrom($this->kind)) {
@@ -146,6 +178,8 @@ class EntryForms extends Component
         return [
             'rate' => $rate->rate,
             'amount' => $bricks !== null && $bricks->isPositive() ? $rate->rate->timesQuantity($bricks->toDecimal(), 1000) : null,
+            'per_day' => false,
+            'paid_already' => false,
         ];
     }
 

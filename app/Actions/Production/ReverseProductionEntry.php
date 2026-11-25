@@ -4,16 +4,19 @@ namespace App\Actions\Production;
 
 use App\Accounting\BooksLock;
 use App\Accounting\JournalPoster;
+use App\Actions\Labour\RecordWorkEntry;
 use App\Actions\Materials\ReverseMaterialEntry;
 use App\Actions\Production\Concerns\PostsProduction;
 use App\Actions\Settings\Concerns\ValidatesSettings;
 use App\Enums\Permission;
+use App\Enums\ProductionEntryKind;
 use App\Enums\StageKind;
 use App\Models\BrickMovement;
 use App\Models\ProductionEntry;
 use App\Models\ProductionStage;
 use App\Models\User;
 use App\Models\WorkEntry;
+use App\Models\Worker;
 use App\Support\Quantity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -98,6 +101,12 @@ class ReverseProductionEntry
             $wages = WorkEntry::query()->where('production_entry_id', $fresh->id)->with('entry')->first();
             if ($wages !== null && ! $wages->entry->isReversed()) {
                 app(JournalPoster::class)->reverse($wages->entry, now(), $data['reason'], substr($fresh->idempotency_key, 0, 52).':wages-rev', $actor);
+
+                // The machine operator's day was paid with this entry: another machine entry of
+                // his on that day, if any, now carries the day instead.
+                if ($fresh->by_machine && $fresh->worker_id !== null) {
+                    $this->moveMachineDay($actor, $fresh);
+                }
             }
 
             // The fuel of a firing entry goes back into material stock too.
@@ -114,5 +123,24 @@ class ReverseProductionEntry
 
             return $fresh;
         });
+    }
+
+    private function moveMachineDay(User $actor, ProductionEntry $reversed): void
+    {
+        $other = ProductionEntry::query()
+            ->where('kind', ProductionEntryKind::Pathai)
+            ->where('by_machine', true)
+            ->where('worker_id', $reversed->worker_id)
+            ->whereDate('entry_date', $reversed->entry_date->format('Y-m-d'))
+            ->whereKeyNot($reversed->id)
+            ->whereNull('reversed_at')
+            ->whereDoesntHave('workEntry')
+            ->orderBy('id')
+            ->first();
+
+        $operator = $other !== null ? Worker::query()->with('category')->find($reversed->worker_id) : null;
+        if ($other !== null && $operator !== null) {
+            app(RecordWorkEntry::class)->dayForMachine($actor, $other, $operator);
+        }
     }
 }

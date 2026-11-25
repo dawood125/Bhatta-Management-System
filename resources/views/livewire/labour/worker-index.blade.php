@@ -124,6 +124,22 @@
                     <x-ui.input id="worker-joined" type="date" wire:model="form.joined_on" dir="ltr" max="{{ now()->format('Y-m-d') }}" />
                 </x-ui.field>
 
+                <fieldset class="rounded-[var(--radius-control)] bg-stone-50 p-4 ring-1 ring-stone-200 sm:col-span-2">
+                    <legend class="px-1 text-sm font-medium text-stone-700">{{ __('Opening balance') }}</legend>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.field :label="__('Who owes whom')" for="worker-direction" error="form.opening_direction" required class="sm:col-span-2">
+                            <x-ui.select id="worker-direction" wire:model="form.opening_direction" :options="['kiln_owes' => __('Kiln owes the worker (wages due)'), 'worker_owes' => __('Worker owes the kiln (advance)')]" />
+                        </x-ui.field>
+                        <x-ui.field :label="__('Amount')" for="worker-opening" error="form.opening_amount" required>
+                            <x-ui.input id="worker-opening" wire:model="form.opening_amount" inputmode="decimal" :suffix="__('Rs')" dir="ltr" />
+                        </x-ui.field>
+                        <x-ui.field :label="__('As of date')" for="worker-opening-date" error="form.opening_date" required>
+                            <x-ui.input id="worker-opening-date" type="date" wire:model="form.opening_date" dir="ltr" max="{{ now()->format('Y-m-d') }}" />
+                        </x-ui.field>
+                    </div>
+                    <p class="mt-2 text-xs text-stone-500">{{ $editingId ? __('Changing it reverses the old opening entry and records a new one; both stay in the history.') : __('What stood between the kiln and this worker before you started using the system. Use 0 if nothing is owed either way.') }}</p>
+                </fieldset>
+
                 <x-ui.field :label="__('Note')" for="worker-notes" error="form.notes" :hint="__('Optional')" class="sm:col-span-2">
                     <x-ui.input id="worker-notes" wire:model="form.notes" />
                 </x-ui.field>

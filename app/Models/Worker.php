@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\MoneyCast;
 use App\Labour\WorkerLedger;
 use App\Models\Concerns\Archivable;
 use App\Models\Concerns\BelongsToKiln;
@@ -26,10 +27,14 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $labour_category_id
  * @property Carbon|null $joined_on
  * @property string|null $notes
+ * @property Money $opening_balance
+ * @property Carbon|null $opening_date
+ * @property int|null $opening_entry_id
  * @property bool $is_active
+ * @property string|null $creation_key
  * @property-read LabourCategory $category
  */
-#[Fillable(['name', 'name_ur', 'phone', 'labour_category_id', 'joined_on', 'notes', 'is_active'])]
+#[Fillable(['name', 'name_ur', 'phone', 'labour_category_id', 'joined_on', 'notes', 'opening_balance', 'opening_date', 'opening_entry_id', 'is_active', 'creation_key'])]
 class Worker extends Model implements Archivable
 {
     use BelongsToKiln, HasLocalizedName, LogsActivity;
@@ -38,6 +43,8 @@ class Worker extends Model implements Archivable
     {
         return [
             'joined_on' => 'date',
+            'opening_balance' => MoneyCast::class,
+            'opening_date' => 'date',
             'is_active' => 'boolean',
         ];
     }
@@ -68,7 +75,7 @@ class Worker extends Model implements Archivable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'name_ur', 'phone', 'labour_category_id', 'joined_on', 'is_active'])
+            ->logOnly(['name', 'name_ur', 'phone', 'labour_category_id', 'joined_on', 'opening_date', 'is_active'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

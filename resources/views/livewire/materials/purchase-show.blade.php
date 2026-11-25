@@ -65,11 +65,13 @@
                     @foreach ($purchase->lines as $line)
                         @php($unit = $line->material->unit->symbol ?? $line->material->unit->displayName())
                         @php($perUnit = $stock->averageCost(['quantity' => $line->quantity, 'value' => $line->cost]))
+                        {{-- A material bought in two sizes is kept in stock in the normal size: say so. --}}
+                        @php($sized = $line->material->bricks_per_big_unit !== null && $line->material->bricks_per_unit !== null)
                         <tr class="align-top">
                             <td class="py-2.5 pe-3">
                                 <a href="{{ route('materials.show', $line->material) }}" wire:navigate class="font-medium text-stone-900 hover:underline print:no-underline">{{ $line->material->displayName() }}</a>
                             </td>
-                            <td class="py-2.5 pe-3 text-end whitespace-nowrap"><span class="tabular" dir="ltr">{{ $line->quantity->format($line->material->unit->decimals) }}</span> <span class="text-xs text-stone-500">{{ $unit }}</span>
+                            <td class="py-2.5 pe-3 text-end whitespace-nowrap"><span class="tabular" dir="ltr">{{ $line->quantity->format($line->material->unit->decimals) }}</span> <span class="text-xs text-stone-500">{{ $sized ? __('normal :unit', ['unit' => $unit]) : $unit }}</span>
                                 @if ($line->big_quantity)
                                     <span class="block text-xs text-stone-500">{{ __('Bought as :quantity big trolleys', ['quantity' => $line->big_quantity->format(2)]) }}</span>
                                 @endif
@@ -80,7 +82,9 @@
                             <td class="py-2.5 text-end">
                                 <x-ui.money :amount="$line->cost" class="font-medium" />
                                 @if ($perUnit)
-                                    <span class="block text-xs text-stone-500">{{ __(':amount per :unit', ['amount' => $perUnit->formatWithCurrency(), 'unit' => $unit]) }}</span>
+                                    <span class="block text-xs text-stone-500">{{ $sized
+                                        ? __(':amount per normal :unit (:bricks bricks)', ['amount' => $perUnit->formatWithCurrency(), 'unit' => $unit, 'bricks' => number_format($line->material->bricks_per_unit)])
+                                        : __(':amount per :unit', ['amount' => $perUnit->formatWithCurrency(), 'unit' => $unit]) }}</span>
                                 @endif
                             </td>
                         </tr>

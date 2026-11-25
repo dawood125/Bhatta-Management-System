@@ -90,7 +90,7 @@ class WorkerLedger
         $opening = $this->balances($workerIds, $from->copy()->subDay());
         $sums = [];
         foreach ($workerIds as $id) {
-            $sums[$id] = ['earned' => 0, 'advances' => 0, 'deductions' => 0];
+            $sums[$id] = ['opening' => 0, 'earned' => 0, 'advances' => 0, 'deductions' => 0];
         }
 
         if ($workerIds !== []) {
@@ -111,18 +111,21 @@ class WorkerLedger
                 $bucket = match (JournalType::tryFrom($row->kind)) {
                     JournalType::Wages => 'earned',
                     JournalType::WorkerDeduction => 'deductions',
+                    // An opening balance dated inside the period counts as brought forward.
+                    JournalType::OpeningBalance => 'opening',
                     default => 'advances', // advances, earlier payments, money paid back
                 };
                 // Earned is money owed to the worker (credit); the others are taken off (debit).
-                $sums[(int) $row->worker_id][$bucket] += $bucket === 'earned' ? (int) $row->net : -(int) $row->net;
+                $sums[(int) $row->worker_id][$bucket] += in_array($bucket, ['earned', 'opening'], true) ? (int) $row->net : -(int) $row->net;
             }
         }
 
         $result = [];
         foreach ($workerIds as $id) {
-            $payable = $opening[$id]->paisa + $sums[$id]['earned'] - $sums[$id]['advances'] - $sums[$id]['deductions'];
+            $broughtForward = $opening[$id]->paisa + $sums[$id]['opening'];
+            $payable = $broughtForward + $sums[$id]['earned'] - $sums[$id]['advances'] - $sums[$id]['deductions'];
             $result[$id] = [
-                'brought_forward' => $opening[$id],
+                'brought_forward' => Money::fromPaisa($broughtForward),
                 'earned' => Money::fromPaisa($sums[$id]['earned']),
                 'advances' => Money::fromPaisa($sums[$id]['advances']),
                 'deductions' => Money::fromPaisa($sums[$id]['deductions']),

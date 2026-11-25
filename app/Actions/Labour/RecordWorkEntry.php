@@ -116,6 +116,42 @@ class RecordWorkEntry
     }
 
     /**
+     * The machine operator's day wage for a machine Pathai entry: one day at his day rate, once
+     * per day. Nothing is posted when he already has wages for that date (an earlier machine
+     * entry, or a day entered in Work and wages), so a second entry on the same day never pays
+     * the day twice. Must run inside the production entry's transaction.
+     */
+    public function dayForMachine(User $actor, ProductionEntry $entry, Worker $operator): ?WorkEntry
+    {
+        $operator->loadMissing('category');
+        if ($operator->category->basis !== PayBasis::PerDay) {
+            throw ValidationException::withMessages(['worker_id' => __(':worker is not paid by the day. Choose the machine operator.', ['worker' => $operator->displayName()])]);
+        }
+
+        // One machine day at a time per operator, so two entries saved together cannot both pay it.
+        Worker::query()->whereKey($operator->id)->lockForUpdate()->first();
+
+        if (self::paidForDay($operator, $entry->entry_date)) {
+            return null;
+        }
+
+        $rate = $this->rateOrFail($operator, $entry->entry_date, 'worker_id');
+        $days = Quantity::fromInput('1', PayBasis::PerDay->decimals());
+
+        return $this->post($actor, $operator, $entry->entry_date, $days, $rate, $this->amount($rate->rate, $days, PayBasis::PerDay), null, substr($entry->idempotency_key, 0, 58).':wages', $entry);
+    }
+
+    /** Whether the worker already has wages (not reversed) for this date. */
+    public static function paidForDay(Worker $worker, CarbonInterface $date): bool
+    {
+        return WorkEntry::query()
+            ->where('worker_id', $worker->id)
+            ->whereDate('work_date', $date->format('Y-m-d'))
+            ->whereHas('entry', fn ($q) => $q->where('status', JournalEntry::STATUS_POSTED))
+            ->exists();
+    }
+
+    /**
      * Post earnings and keep their details.
      */
     public function post(User $actor, Worker $worker, CarbonInterface $date, ?Quantity $quantity, ?LabourRate $rate, Money $amount, ?string $description, string $idempotencyKey, ?ProductionEntry $production = null, ?string $salaryMonth = null): WorkEntry

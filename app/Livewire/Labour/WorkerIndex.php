@@ -15,6 +15,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
@@ -47,6 +48,8 @@ class WorkerIndex extends Component
     public bool $showForm = false;
 
     public ?int $editingId = null;
+
+    public string $formKey = '';
 
     /** @var array<string, string> */
     public array $form = [];
@@ -169,7 +172,11 @@ class WorkerIndex extends Component
             'labour_category_id' => ctype_digit($this->category) ? $this->category : '',
             'joined_on' => '',
             'notes' => '',
+            'opening_amount' => '0',
+            'opening_direction' => SaveWorker::KILN_OWES,
+            'opening_date' => now()->format('Y-m-d'),
         ];
+        $this->formKey = (string) Str::uuid();
         $this->showForm = true;
     }
 
@@ -186,7 +193,11 @@ class WorkerIndex extends Component
             'labour_category_id' => (string) $worker->labour_category_id,
             'joined_on' => $worker->joined_on?->format('Y-m-d') ?? '',
             'notes' => (string) $worker->notes,
+            'opening_amount' => $worker->opening_balance->abs()->toDecimal(),
+            'opening_direction' => $worker->opening_balance->isNegative() ? SaveWorker::WORKER_OWES : SaveWorker::KILN_OWES,
+            'opening_date' => $worker->opening_date?->format('Y-m-d') ?? now()->format('Y-m-d'),
         ];
+        $this->formKey = (string) Str::uuid();
         $this->showForm = true;
     }
 
@@ -194,11 +205,11 @@ class WorkerIndex extends Component
     {
         $worker = $this->editingId !== null ? Worker::query()->findOrFail($this->editingId) : null;
 
-        $this->runAction(fn () => $saveWorker->handle($this->actor(), $worker, $this->form), 'form');
+        $this->runAction(fn () => $saveWorker->handle($this->actor(), $worker, $this->form, $this->formKey), 'form');
 
         $this->showForm = false;
         $this->toast($worker ? __('Changes saved.') : __('Worker added.'));
-        unset($this->workers, $this->balances);
+        unset($this->workers, $this->balances, $this->totals);
     }
 
     public function archive(int $id, SetArchived $setArchived): void

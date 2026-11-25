@@ -20,6 +20,9 @@
 <div class="mt-1 space-y-0.5 text-stone-700">
     @switch($entry->kind)
         @case(\App\Enums\ProductionEntryKind::Pathai)
+            @if ($entry->by_machine)
+                <p><x-ui.badge tone="brand" icon="cog">{{ __('Machine') }}</x-ui.badge></p>
+            @endif
             @if (filled($entry->team))
                 <p><bdi>{{ $entry->team }}</bdi></p>
             @endif
@@ -43,6 +46,9 @@
             @php($movement = $entry->movements->first())
             @if ($movement)
                 <p class="text-sm">
+                    @if ($entry->is_opening)
+                        <x-ui.badge tone="info">{{ __('Opening stock') }}</x-ui.badge>
+                    @endif
                     {{ $stageName($movement->stage_to ?? $movement->stage_from) }}@if ($movement->product): {{ $movement->product->displayName() }}@endif
                     <span @class(['tabular font-semibold', 'text-emerald-700' => $movement->stage_to !== null, 'text-red-700' => $movement->stage_to === null]) dir="ltr">{{ $movement->stage_to !== null ? '+' : '−' }}{{ $movement->quantity->format($movement->product?->unit->decimals ?? 0) }}</span>
                 </p>

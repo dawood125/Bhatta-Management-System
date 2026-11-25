@@ -11,7 +11,7 @@ What the client explained after the first test, and what changed in the system.
 | Rejected raw bricks are reused | Soil and Kassu are taken for **accepted** bricks only |
 | Badly fired bricks go back with the next Julai | Nakaasi has **"Badly fired, send back to Julai"**. They wait in the new stage **"Waiting to re-fire"**, and the loading form takes them back in |
 | Kamyaar and Nakaasi workers are not paid again | The Kamyaar is paid only for raw bricks loaded. Nakaasi is paid when a brick comes out in a grade, so each brick earns each wage once |
-| A machine runs 8 days a month; only its operator is paid, Rs 1,500 a day | New daily-wage category **Machine operator**. Set the rate once and record the days in Labour → Work and wages. Machine-made Pathai is entered with no worker, so no piece wage is paid |
+| A machine runs 8 days a month; only its operator is paid, Rs 1,500 a day | New daily-wage category **Machine operator**. Pathai has **Made by: Machine**: choose the operator and he earns one day's wage, once per day (see part 2) |
 | Trolleys belong to the bhatta; the driver gets the carriage less diesel and maintenance, monthly | New page **Sales → Driver settlement**: trolleys, diesel and maintenance, and per driver: brought forward + carriage − costs − paid = balance. Pay opens a payment voucher; slips can be printed |
 
 ## How the money works
@@ -38,3 +38,26 @@ What the client explained after the first test, and what changed in the system.
 - Full automated suite: 783 tests pass, including 27 new ones in `tests/Feature/Client/ClientRequirementsTest.php`.
 - Larastan 0 errors, Pint clean, `ledger:verify` consistent after the browser walkthrough.
 - Browser walkthrough on demo data: settings, big-trolley purchase, Pathai, loading, firing, Nakaasi with re-fire, loading the re-fire, trolley, diesel, maintenance and settlement. The new pages were checked in English and Urdu and at phone width.
+
+## Part 2 (2026-11-25, from partner testing)
+
+| Partner's point | What the system does now |
+|---|---|
+| Workers need an opening balance for the first day | Add/Edit worker has **Opening balance**: amount, "Kiln owes the worker (wages due)" or "Worker owes the kiln (advance)", and an "as of" date |
+| Bricks already at the kiln on the first day | Production → Stock adjustment → **Opening stock**, at any stage and grade. Shown with an "Opening stock" badge |
+| The machine operator is missing from the Pathai worker list | Pathai has **Made by: Hand / Machine**. Machine lists the daily-wage workers (machine operators first). He earns **one day's wage once per day**; a second machine entry that day, or a day already entered in Work and wages, adds nothing |
+| What is "Rs 3,076.92 per trolley"? | Stock is kept in **normal trolleys**, so 2 big trolleys (2 × 2,600 ÷ 2,000) are 2.6 normal ones and Rs 8,000 ÷ 2.6 = Rs 3,076.92. The page now says "per normal trolley (2,000 bricks)", and the purchase form says "per big trolley" or "per normal trolley" under the rate |
+
+### How the money works
+- Worker opening balance: credit (wages due) or debit (advance) Wages payable for the worker, against Opening balances. It is not a wage expense, so it does not change this season's labour cost.
+- Machine day: debit the machine operator's labour account, credit the operator, linked to the Pathai entry like piece wages. Reversing the entry reverses the wage.
+
+### Rules to know
+- The worker's opening date cannot be after his first transaction.
+- Machine Pathai needs an operator paid by the day; a piece-rate worker is refused.
+- The day check looks at any wages of the operator on that date, so enter his days in **either** Work and wages **or** machine Pathai, not both.
+
+### Testing
+- 24 new tests in `tests/Feature/Client/OpeningDataTest.php`; the full suite (808 tests), Larastan and Pint pass.
+- Browser check on demo data: worker opening balance (add and edit), machine Pathai (operator list, day wage, "already paid" on a second entry), brick opening stock, and the purchase label.
+- The first-day order of entry is in `docs/10-first-day-setup.md`.

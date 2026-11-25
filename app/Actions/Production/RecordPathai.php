@@ -2,6 +2,7 @@
 
 namespace App\Actions\Production;
 
+use App\Actions\Labour\RecordWorkEntry;
 use App\Actions\Materials\RecordMaterialUsage;
 use App\Actions\Production\Concerns\PostsProduction;
 use App\Actions\Settings\Concerns\ValidatesSettings;
@@ -17,6 +18,7 @@ use App\Support\Quantity;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
@@ -24,15 +26,26 @@ use InvalidArgumentException;
  * Pathai: raw bricks made by a team on a day (entry PT-…). Rejected bricks are recorded but
  * never enter stock (their soil is mixed in again, so it is not used up); the accepted ones go
  * into the raw stage and take their soil, Kassu and any other raw material out of stock.
+ *
+ * Made by hand, the worker named earns the accepted bricks at his rate per 1,000. Made by the
+ * machine, the worker named is its operator: he earns one day's wage, once per day, whatever
+ * the bricks (client, 2026-11-25).
  */
 class RecordPathai
 {
     use PostsProduction, ValidatesSettings;
 
-    public function __construct(private readonly RecordMaterialUsage $recordUsage) {}
+    public const BY_HAND = 'hand';
+
+    public const BY_MACHINE = 'machine';
+
+    public function __construct(
+        private readonly RecordMaterialUsage $recordUsage,
+        private readonly RecordWorkEntry $recordWork,
+    ) {}
 
     /**
-     * @param  array<string, mixed>  $input  entry_date, team, made, rejected, notes
+     * @param  array<string, mixed>  $input  entry_date, made_by (hand | machine, hand when left out), worker_id, team, made, rejected, notes
      */
     public function handle(User $actor, array $input, string $idempotencyKey): ProductionEntry
     {
@@ -43,9 +56,11 @@ class RecordPathai
         }
 
         $input = $this->clean($input, ['team', 'rejected', 'notes']);
+        $input['made_by'] = ($input['made_by'] ?? '') !== '' ? $input['made_by'] : self::BY_HAND;
 
         $data = Validator::make($input, [
             'entry_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'made_by' => ['required', Rule::in([self::BY_HAND, self::BY_MACHINE])],
             'team' => ['nullable', 'string', 'max:100'],
             'made' => ['required'],
             'rejected' => ['nullable'],
@@ -67,13 +82,19 @@ class RecordPathai
         $accepted = $made->subtract($rejected);
         $date = Carbon::createFromFormat('Y-m-d', $data['entry_date'])->startOfDay();
         $worker = $this->workerFrom($input['worker_id'] ?? null);
+        $byMachine = $data['made_by'] === self::BY_MACHINE;
 
-        return $this->posting($idempotencyKey, ProductionEntryKind::Pathai, function () use ($actor, $data, $date, $made, $rejected, $accepted, $worker, $idempotencyKey): ProductionEntry {
+        if ($byMachine && $worker === null) {
+            throw ValidationException::withMessages(['worker_id' => __('Choose the machine operator.')]);
+        }
+
+        return $this->posting($idempotencyKey, ProductionEntryKind::Pathai, function () use ($actor, $data, $date, $made, $rejected, $accepted, $worker, $byMachine, $idempotencyKey): ProductionEntry {
             $usage = $this->useMaterials($actor, $date, $accepted, $data['notes'], $idempotencyKey);
 
             $entry = $this->createEntry(ProductionEntryKind::Pathai, $date, [
                 'team' => $data['team'],
                 'worker_id' => $worker?->id,
+                'by_machine' => $byMachine,
                 'made' => $made,
                 'rejected' => $rejected,
                 'quantity' => $accepted,
@@ -85,8 +106,13 @@ class RecordPathai
                 $this->move($entry, null, StageKind::Raw, null, $accepted, $actor);
             }
 
-            // Only accepted bricks are paid (rejected ones are not).
-            $this->payWorker($entry, $worker, $accepted, $actor);
+            if ($byMachine) {
+                // The operator earns his day, not the bricks.
+                $this->recordWork->dayForMachine($actor, $entry, $worker);
+            } else {
+                // Only accepted bricks are paid (rejected ones are not).
+                $this->payWorker($entry, $worker, $accepted, $actor);
+            }
 
             return $entry;
         });

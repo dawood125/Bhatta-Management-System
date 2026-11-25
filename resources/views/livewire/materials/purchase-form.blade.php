@@ -118,7 +118,12 @@
                                 <p class="text-sm text-red-600">{{ $message }}</p>
                             @else
                                 @if ($material)
-                                    <p class="text-end text-xs text-stone-500">{{ __('per :unit', ['unit' => $material->unit->symbol ?? $material->unit->displayName()]) }}</p>
+                                    @php($sized = $material->bricks_per_big_unit !== null && $material->bricks_per_unit !== null)
+                                    <p class="text-end text-xs text-stone-500">{{ match (true) {
+                                        $sized && ($line['size'] ?? '') === 'big' => __('per big :unit', ['unit' => $material->unit->symbol ?? $material->unit->displayName()]),
+                                        $sized => __('per normal :unit', ['unit' => $material->unit->symbol ?? $material->unit->displayName()]),
+                                        default => __('per :unit', ['unit' => $material->unit->symbol ?? $material->unit->displayName()]),
+                                    } }}</p>
                                 @endif
                             @enderror
                         </div>
@@ -126,7 +131,9 @@
                             @if ($this->lineAmounts[$i] ?? null)
                                 <x-ui.money :amount="$this->lineAmounts[$i]" class="font-medium text-stone-900" />
                                 @if (($this->landedPerUnit[$i] ?? null) && $this->chargesTotal?->isPositive())
-                                    <p class="text-xs text-stone-500">{{ __('With charges: :amount per :unit', ['amount' => $this->landedPerUnit[$i]->formatWithCurrency(), 'unit' => $material?->unit->symbol ?? '']) }}</p>
+                                    <p class="text-xs text-stone-500">{{ $material?->bricks_per_big_unit !== null && $material->bricks_per_unit !== null
+                                        ? __('With charges: :amount per normal :unit', ['amount' => $this->landedPerUnit[$i]->formatWithCurrency(), 'unit' => $material->unit->symbol ?? ''])
+                                        : __('With charges: :amount per :unit', ['amount' => $this->landedPerUnit[$i]->formatWithCurrency(), 'unit' => $material?->unit->symbol ?? '']) }}</p>
                                 @endif
                             @else
                                 <span class="text-stone-400">—</span>

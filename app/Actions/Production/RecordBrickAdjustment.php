@@ -17,7 +17,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * A brick stock correction with a reason (entry BA-…), by the owner or manager: bricks found
- * when counting, or broken / lost. On saleable stock it names the grade.
+ * when counting, or broken / lost. On saleable stock it names the grade. "Opening stock" adds the
+ * bricks already at a stage when the kiln starts using the system (the reason is then optional).
  */
 class RecordBrickAdjustment
 {
@@ -26,6 +27,9 @@ class RecordBrickAdjustment
     public const ADD = 'add';
 
     public const REMOVE = 'remove';
+
+    /** Bricks already at the kiln when it starts using the system. */
+    public const OPENING = 'opening';
 
     /**
      * @param  array<string, mixed>  $input  entry_date, stage, product_id (saleable only), direction, quantity, reason
@@ -38,7 +42,10 @@ class RecordBrickAdjustment
             return $existing;
         }
 
-        $input = $this->clean($input, ['product_id']);
+        $input = $this->clean($input, ['product_id', 'reason']);
+        if (($input['direction'] ?? null) === self::OPENING && $input['reason'] === null) {
+            $input['reason'] = __('Opening stock');
+        }
         $isSaleable = ($input['stage'] ?? null) === StageKind::Saleable->value;
         if (! $isSaleable) {
             $input['product_id'] = null;
@@ -50,7 +57,7 @@ class RecordBrickAdjustment
             'product_id' => $isSaleable
                 ? ['required', 'integer', Rule::exists('products', 'id')->where('kiln_id', $this->kilnId())->where('is_active', true)]
                 : ['nullable'],
-            'direction' => ['required', Rule::in([self::ADD, self::REMOVE])],
+            'direction' => ['required', Rule::in([self::ADD, self::REMOVE, self::OPENING])],
             'quantity' => ['required'],
             'reason' => ['required', 'string', 'min:3', 'max:255'],
         ], [
@@ -66,15 +73,16 @@ class RecordBrickAdjustment
         $product = $isSaleable ? Product::query()->with('unit')->findOrFail((int) $data['product_id']) : null;
         $decimals = $product !== null ? $product->unit->decimals : 0;
         $quantity = $this->quantity($data['quantity'], $decimals, 'quantity');
-        $adding = $data['direction'] === self::ADD;
+        $opening = $data['direction'] === self::OPENING;
+        $adding = $opening || $data['direction'] === self::ADD;
         $date = Carbon::createFromFormat('Y-m-d', $data['entry_date'])->startOfDay();
 
-        return $this->posting($idempotencyKey, ProductionEntryKind::Adjustment, function () use ($actor, $data, $date, $stage, $product, $decimals, $quantity, $adding, $idempotencyKey): ProductionEntry {
+        return $this->posting($idempotencyKey, ProductionEntryKind::Adjustment, function () use ($actor, $data, $date, $stage, $product, $decimals, $quantity, $adding, $opening, $idempotencyKey): ProductionEntry {
             if (! $adding) {
                 $this->assertStageAllows($stage, $product?->id, $date, Quantity::zero()->subtract($quantity), 'quantity', $decimals);
             }
 
-            $entry = $this->createEntry(ProductionEntryKind::Adjustment, $date, ['quantity' => $quantity, 'notes' => $data['reason']], $idempotencyKey, $actor);
+            $entry = $this->createEntry(ProductionEntryKind::Adjustment, $date, ['quantity' => $quantity, 'is_opening' => $opening, 'notes' => $data['reason']], $idempotencyKey, $actor);
             $this->move($entry, $adding ? null : $stage, $adding ? $stage : null, $product?->id, $quantity, $actor);
 
             return $entry;

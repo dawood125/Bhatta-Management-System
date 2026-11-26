@@ -2,6 +2,8 @@
 
 How to put Bhatta Manager on the Contabo server, keep it updated, back it up and bring a backup back. Written for **Ubuntu 24.04** (it has PHP 8.3 and MariaDB 10.11, the same versions the system is built and tested on).
 
+> On the shared Contabo server, where several projects live side by side, each project has its own user instead of `www-data`: see `11-shared-server.md`.
+
 > Status: the configuration files in `deploy/` and the commands below have been checked on the development laptop. They have **not yet been run on a real server**: the first deployment should be done together, step by step.
 
 **What you need**

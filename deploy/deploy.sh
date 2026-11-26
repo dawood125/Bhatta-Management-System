@@ -9,7 +9,9 @@ cd "$(dirname "$0")/.."
 # Artisan runs as the web server's user (www-data), like the site, the worker and the scheduler.
 # Files it makes (compiled views, caches, backups) then belong to that user; files made by the
 # deploy user broke pages ("touch(): Utime failed") and the nightly backup.
-WEB_USER="${WEB_USER:-www-data}"
+# On a server with several projects each app has its own user: it is the group of .env
+# (www-data on a one-app server, e.g. "bhatta" on the shared server).
+WEB_USER="${WEB_USER:-$(stat -c %G .env 2>/dev/null || echo www-data)}"
 artisan() {
     if [ "$(id -un)" = "$WEB_USER" ]; then
         php artisan "$@"
@@ -21,7 +23,7 @@ artisan() {
 on_error() {
     echo
     echo "The update stopped at the step above. The site is still in maintenance mode."
-    echo "Fix the problem and run ./deploy/deploy.sh again, or open the site with: sudo -u www-data php artisan up"
+    echo "Fix the problem and run ./deploy/deploy.sh again, or open the site with: sudo -u $WEB_USER php artisan up"
     echo "The database as it was before the update is in the newest backup (Backups page, or storage/app/backups)."
 }
 trap on_error ERR

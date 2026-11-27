@@ -19,6 +19,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -205,6 +206,19 @@ class SaleForm extends Component
         if ($customer !== null && $customer->sales_agent_id !== null && $this->agents->contains('id', $customer->sales_agent_id)) {
             $this->form['agent_id'] = (string) $customer->sales_agent_id;
         }
+    }
+
+    /** A customer added with "New customer" on this page is chosen at once. */
+    #[On('quick-party-added')]
+    public function quickPartyAdded(string $role, int $id): void
+    {
+        if ($role !== PartyRole::Customer->value) {
+            return;
+        }
+        $this->form['customer_id'] = (string) $id;
+        $this->resetErrorBag('form.customer_id');
+        unset($this->customerBalance);
+        $this->updatedFormCustomerId((string) $id);
     }
 
     public function addLine(): void

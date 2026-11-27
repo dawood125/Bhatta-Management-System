@@ -1668,5 +1668,14 @@
     "Your password": "آپ کا پاس ورڈ",
     "file": "فائل",
     "settings, products, materials, rates, users, and the lists of parties, workers, trolleys and cash/bank accounts.": "سیٹنگز، پروڈکٹس، میٹریل، ریٹس، صارفین، اور پارٹیوں، مزدوروں، ٹرالیوں اور کیش/بینک اکاؤنٹس کی فہرستیں۔",
-    "the kiln profile and your own login.": "بھٹے کی پروفائل اور آپ کا اپنا لاگ ان۔"
+    "the kiln profile and your own login.": "بھٹے کی پروفائل اور آپ کا اپنا لاگ ان۔",
+    "New customer": "نیا گاہک",
+    "New supplier": "نیا سپلائر",
+    "Customer added.": "گاہک شامل ہو گیا۔",
+    "Supplier added.": "سپلائر شامل ہو گیا۔",
+    "Add customer": "گاہک شامل کریں",
+    "Add supplier": "سپلائر شامل کریں",
+    "Leave empty if nothing is owed.": "اگر کوئی لین دین باقی نہیں تو خالی چھوڑیں۔",
+    "More details (address, area, second phone) can be added later on the Parties page.": "مزید تفصیل (پتہ، علاقہ، دوسرا فون) بعد میں فریقین (کھاتے) صفحے پر شامل کی جا سکتی ہے۔",
+    "\":name\" already exists. Choose them from the list, or add the role on the Parties page.": "\":name\" پہلے سے موجود ہے۔ اسے فہرست سے چنیں، یا فریقین (کھاتے) صفحے پر اس کا کردار شامل کریں۔"
 }

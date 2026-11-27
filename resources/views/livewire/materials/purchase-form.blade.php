@@ -41,6 +41,11 @@
 
                 <x-ui.field :label="__('Supplier')" for="purchase-supplier" error="form.supplier_id" :required="! $paidNow" :hint="$paidNow ? __('Optional when paid now.') : null">
                     <x-ui.combobox id="purchase-supplier" source="purchase-party-options" wire:model.live="form.supplier_id" :placeholder="__('Search a party by name or phone')" />
+                    @can(\App\Enums\Permission::PartiesManage->value)
+                        <button type="button" wire:click="$dispatchTo('parties.quick-add-party', 'open-quick-party')" class="inline-flex items-center gap-1 self-start text-sm font-medium text-brand-700 hover:text-brand-800">
+                            <x-lucide-plus class="size-4" aria-hidden="true" /> {{ __('New supplier') }}
+                        </button>
+                    @endcan
                     @if ($this->supplierBalance !== null && ! $errors->has('form.supplier_id'))
                         <div class="flex flex-wrap items-center gap-2 text-xs text-stone-500">
                             <span>{{ __('Balance now') }}:</span>
@@ -241,4 +246,8 @@
             </div>
         </x-ui.card>
     </form>
+
+    @can(\App\Enums\Permission::PartiesManage->value)
+        <livewire:parties.quick-add-party role="supplier" source="purchase-party-options" />
+    @endcan
 </div>

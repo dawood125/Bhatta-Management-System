@@ -20,6 +20,11 @@
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <x-ui.field :label="__('Customer')" for="sale-customer" error="form.customer_id" required>
                     <x-ui.combobox id="sale-customer" source="sale-customer-options" wire:model.live="form.customer_id" :placeholder="__('Search a customer by name or phone')" />
+                    @can(\App\Enums\Permission::PartiesManage->value)
+                        <button type="button" wire:click="$dispatchTo('parties.quick-add-party', 'open-quick-party')" class="inline-flex items-center gap-1 self-start text-sm font-medium text-brand-700 hover:text-brand-800">
+                            <x-lucide-plus class="size-4" aria-hidden="true" /> {{ __('New customer') }}
+                        </button>
+                    @endcan
                     @if ($this->customerBalance !== null && ! $errors->has('form.customer_id'))
                         <div class="flex flex-wrap items-center gap-2 text-xs text-stone-500">
                             <span>{{ __('Balance now') }}:</span>
@@ -191,4 +196,8 @@
             </div>
         </x-ui.card>
     </form>
+
+    @can(\App\Enums\Permission::PartiesManage->value)
+        <livewire:parties.quick-add-party role="customer" source="sale-customer-options" />
+    @endcan
 </div>

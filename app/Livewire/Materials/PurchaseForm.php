@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -222,6 +223,18 @@ class PurchaseForm extends Component
         }
 
         return $result;
+    }
+
+    /** A supplier added with "New supplier" on this page is chosen at once. */
+    #[On('quick-party-added')]
+    public function quickPartyAdded(string $role, int $id): void
+    {
+        if ($role !== PartyRole::Supplier->value) {
+            return;
+        }
+        $this->form['supplier_id'] = (string) $id;
+        $this->resetErrorBag('form.supplier_id');
+        unset($this->supplierBalance);
     }
 
     public function addLine(): void

@@ -40,6 +40,13 @@
                 } catch (e) {
                     this.options = [];
                 }
+                // A party added on the page ("New customer") joins the list without reloading it.
+                window.addEventListener('combobox-add', (event) => {
+                    const detail = event.detail || {};
+                    if (detail.source !== source || ! detail.option) return;
+                    if (this.options.some((o) => String(o.value) === String(detail.option.value))) return;
+                    this.options.unshift(detail.option); // first in the list: it was just added
+                });
                 this.$watch('open', (open) => {
                     if (! open) return;
                     this.active = this.query === '' ? Math.max(0, this.matches.findIndex((o) => String(o.value) === String(this.value))) : 0;
